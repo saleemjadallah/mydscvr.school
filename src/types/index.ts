@@ -224,6 +224,7 @@ export interface SearchResponse {
   schools: School[];
   ai_explanation: string;
   total: number;
+  webResults?: ExaArticle[];
 }
 
 export interface SchoolListResponse {
@@ -247,4 +248,29 @@ export interface SchoolFilters {
   page?: string;
   limit?: string;
   sort?: "rating" | "fee_asc" | "fee_desc" | "reviews";
+}
+
+// ============================================
+// EXA / WEB INSIGHTS
+// ============================================
+export interface ExaArticle {
+  url: string;
+  title: string | null;
+  publishedDate: string | null;
+  author: string | null;
+  highlights: string[] | null;
+  summary: string | null;
+  source: string; // derived from URL hostname
+}
+
+export interface SchoolNewsResponse {
+  school: string;
+  articles: ExaArticle[];
+  fetchedAt: string;
+}
+
+export interface SchoolInsightsResponse {
+  school: string;
+  insights: ExaArticle[];
+  fetchedAt: string;
 }

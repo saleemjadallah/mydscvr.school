@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
@@ -28,10 +29,12 @@ import {
   ThumbsUp,
   ThumbsDown,
   Minus,
+  Newspaper,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import EnquiryForm from "@/components/EnquiryForm";
+import SchoolNews from "@/components/SchoolNews";
 import type { School, KHDARating, KHDAReport, FeeHistory, Review } from "@/types";
 
 // ---------------------------------------------------------------------------
@@ -844,6 +847,37 @@ export default async function SchoolProfilePage({
                 </div>
               </section>
             )}
+
+            {/* ----------------------------------------------------------
+                6b. IN THE NEWS (Exa-powered)
+                ---------------------------------------------------------- */}
+            <Suspense
+              fallback={
+                <section>
+                  <div className="mb-4 flex items-center gap-2">
+                    <Newspaper className="size-5 text-[#FF6B35]" />
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      In the News
+                    </h2>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {[1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="animate-pulse rounded-xl border bg-white p-4"
+                      >
+                        <div className="mb-2 h-4 w-3/4 rounded bg-gray-200" />
+                        <div className="mb-1 h-3 w-full rounded bg-gray-100" />
+                        <div className="mb-3 h-3 w-2/3 rounded bg-gray-100" />
+                        <div className="h-2.5 w-1/3 rounded bg-gray-100" />
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              }
+            >
+              <SchoolNews slug={slug} />
+            </Suspense>
 
             {/* ----------------------------------------------------------
                 7. MAP SECTION

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import db from "@/db";
+import { searchDubaiSchools } from "@/lib/exa";
+import type { ExaArticle } from "@/types";
 
 const claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -123,6 +125,25 @@ Return ONLY valid JSON with these fields (all optional):
       params
     );
 
+    // Step 3b: Exa fallback when pgvector returns few results
+    let webResults: ExaArticle[] | undefined;
+    if (searchResult.rows.length < 3) {
+      try {
+        const exaResult = await searchDubaiSchools(query);
+        webResults = exaResult.results.map((r) => ({
+          url: r.url,
+          title: r.title ?? null,
+          publishedDate: r.publishedDate ?? null,
+          author: r.author ?? null,
+          highlights: r.highlights ?? null,
+          summary: null,
+          source: new URL(r.url).hostname.replace(/^www\./, ""),
+        }));
+      } catch (exaError) {
+        console.error("Exa fallback error (non-fatal):", exaError);
+      }
+    }
+
     // Step 4: Generate AI explanation of results
     const topResults = searchResult.rows.slice(0, 5);
     let aiExplanation = "";
@@ -180,6 +201,7 @@ Write your explanation:`,
       schools: searchResult.rows,
       ai_explanation: aiExplanation,
       total: searchResult.rows.length,
+      ...(webResults && webResults.length > 0 ? { webResults } : {}),
     });
   } catch (error) {
     console.error("Search error:", error);
