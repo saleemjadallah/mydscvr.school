@@ -2,7 +2,8 @@
 -- Run this against your Railway PostgreSQL database
 
 -- Enable extensions
-CREATE EXTENSION IF NOT EXISTS vector;
+-- Note: pgvector (CREATE EXTENSION vector) is NOT available on Railway PostgreSQL.
+-- Embeddings are stored as FLOAT8[] and cosine similarity is computed in application code.
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================
@@ -35,16 +36,26 @@ CREATE TABLE IF NOT EXISTS schools (
   khda_school_id        TEXT,
   khda_inspection_url   TEXT,
   khda_report_path      TEXT,
+  founded_year          INTEGER,
+  wellbeing_rating      TEXT,
+  inclusion_rating      TEXT,
+  principal_name        TEXT,
+  dsib_quality_indicators JSONB,
 
   -- Fees (AED per year)
   fee_min               INTEGER,
   fee_max               INTEGER,
   fee_currency          TEXT DEFAULT 'AED',
+  fee_structure         JSONB,
+  fee_source_url        TEXT,
   fee_last_updated      TIMESTAMP,
 
   -- Capacity
   total_students        INTEGER,
   capacity              INTEGER,
+
+  -- Description
+  description           TEXT,
 
   -- Contact
   website               TEXT,
@@ -57,6 +68,7 @@ CREATE TABLE IF NOT EXISTS schools (
   google_rating         DECIMAL(2,1),
   google_review_count   INTEGER,
   google_photos         JSONB,
+  google_maps_url       TEXT,
 
   -- Features / Tags
   has_sen_support       BOOLEAN DEFAULT false,
@@ -72,6 +84,9 @@ CREATE TABLE IF NOT EXISTS schools (
   ai_summary            TEXT,
   ai_strengths          TEXT[],
   ai_considerations     TEXT[],
+
+  -- Provenance
+  source_url            TEXT,
 
   -- SEO
   meta_title            TEXT,
@@ -92,17 +107,17 @@ CREATE TABLE IF NOT EXISTS schools (
 -- ============================================
 -- EMBEDDINGS TABLE (for semantic search)
 -- ============================================
+-- Uses FLOAT8[] instead of pgvector's vector(1536) because Railway PG lacks pgvector.
+-- Cosine similarity is computed in application code (src/lib/vectors.ts).
+-- If migrating to pgvector-capable host (Supabase, Neon), change to vector(1536)
+-- and use the <=> operator in SQL instead.
 CREATE TABLE IF NOT EXISTS school_embeddings (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   school_id   UUID REFERENCES schools(id) ON DELETE CASCADE,
-  embedding   vector(1536),
+  embedding   FLOAT8[],
   content     TEXT,
   created_at  TIMESTAMP DEFAULT NOW()
 );
-
-CREATE INDEX IF NOT EXISTS idx_school_embeddings_vector
-  ON school_embeddings USING ivfflat (embedding vector_cosine_ops)
-  WITH (lists = 100);
 
 -- ============================================
 -- KHDA REPORTS TABLE
@@ -286,3 +301,6 @@ CREATE INDEX IF NOT EXISTS idx_enquiries_status ON enquiries(status);
 CREATE INDEX IF NOT EXISTS idx_reviews_school ON reviews(school_id);
 CREATE INDEX IF NOT EXISTS idx_saved_schools_user ON saved_schools(user_id);
 CREATE INDEX IF NOT EXISTS idx_search_logs_created ON search_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_schools_last_scraped ON schools(last_scraped_at);
+CREATE INDEX IF NOT EXISTS idx_schools_is_active ON schools(is_active);
+CREATE INDEX IF NOT EXISTS idx_reviews_sentiment ON reviews(sentiment);
