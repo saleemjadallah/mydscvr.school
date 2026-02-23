@@ -3,7 +3,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import db from "@/db";
 import { rateLimit, getClientIP } from "@/lib/rate-limit";
 
-const claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+let _claude: Anthropic | null = null;
+function getClaude() { return _claude ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); }
 
 // POST /api/compare — AI-powered school comparison
 export async function POST(request: NextRequest) {
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const comparison = await claude.messages.create({
+    const comparison = await getClaude().messages.create({
       model: "claude-sonnet-4-5-20251022",
       max_tokens: 1500,
       system: `You are an expert Dubai school advisor. Compare the provided schools objectively and helpfully.

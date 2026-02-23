@@ -1,6 +1,12 @@
 import Exa from "exa-js";
 
-const exa = new Exa(process.env.EXA_API_KEY);
+let _exa: Exa | null = null;
+function getExa() {
+  if (!_exa) {
+    _exa = new Exa(process.env.EXA_API_KEY);
+  }
+  return _exa;
+}
 
 function daysAgoISO(days: number): string {
   const d = new Date();
@@ -14,7 +20,7 @@ export async function searchSchoolNews(
 ) {
   const { numResults = 5, days = 90 } = options ?? {};
 
-  return exa.searchAndContents(
+  return getExa().searchAndContents(
     `${schoolName} Dubai school`,
     {
       type: "auto",
@@ -27,7 +33,7 @@ export async function searchSchoolNews(
 }
 
 export async function searchSchoolFees(schoolName: string) {
-  return exa.searchAndContents(
+  return getExa().searchAndContents(
     `${schoolName} Dubai school fees tuition`,
     {
       type: "auto",
@@ -56,7 +62,7 @@ export async function searchSchoolInsights(
     }
   }
 
-  return exa.searchAndContents(
+  return getExa().searchAndContents(
     `${schoolName} Dubai school review parent experience`,
     {
       type: "auto",
@@ -68,11 +74,11 @@ export async function searchSchoolInsights(
 }
 
 export async function findSimilarSchools(websiteUrl: string) {
-  return exa.findSimilar(websiteUrl, { numResults: 5 });
+  return getExa().findSimilar(websiteUrl, { numResults: 5 });
 }
 
 export async function searchDubaiSchools(query: string) {
-  return exa.searchAndContents(
+  return getExa().searchAndContents(
     `${query} Dubai school`,
     {
       type: "auto",

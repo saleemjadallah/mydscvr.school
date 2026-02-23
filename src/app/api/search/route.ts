@@ -8,8 +8,10 @@ import { cosineSimilarity } from "@/lib/vectors";
 import { rateLimit, getClientIP } from "@/lib/rate-limit";
 import type { ExaArticle, User } from "@/types";
 
-const claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let _claude: Anthropic | null = null;
+let _openai: OpenAI | null = null;
+function getClaude() { return _claude ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); }
+function getOpenAI() { return _openai ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY }); }
 
 // POST /api/search — Natural language AI search
 export async function POST(request: NextRequest) {
@@ -34,7 +36,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // Step 1: Extract structured intent from query using Claude Haiku
-    const intentResponse = await claude.messages.create({
+    const intentResponse = await getClaude().messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 500,
       system: `You extract structured search parameters from parent queries about Dubai schools and nurseries.
@@ -67,7 +69,7 @@ Return ONLY valid JSON with these fields (all optional):
     }
 
     // Step 2: Generate embedding for semantic search
-    const embeddingResponse = await openai.embeddings.create({
+    const embeddingResponse = await getOpenAI().embeddings.create({
       model: "text-embedding-3-small",
       input: query,
     });
@@ -252,7 +254,7 @@ Return ONLY valid JSON with these fields (all optional):
     let aiExplanation = "";
 
     if (topResults.length > 0) {
-      const explanationResponse = await claude.messages.create({
+      const explanationResponse = await getClaude().messages.create({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 400,
         system: `You are a helpful Dubai school advisor. Given a parent's search query and top matching schools,

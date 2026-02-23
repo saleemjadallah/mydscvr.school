@@ -1,6 +1,12 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend() {
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY || "re_placeholder");
+  }
+  return _resend;
+}
 
 interface EnquiryEmailParams {
   type: "parent_confirmation" | "school_notification";
@@ -16,7 +22,7 @@ interface EnquiryEmailParams {
 
 export async function sendEnquiryEmail(params: EnquiryEmailParams) {
   if (params.type === "parent_confirmation") {
-    return resend.emails.send({
+    return getResend().emails.send({
       from: "mydscvr.ai <hello@mydscvr.ai>",
       to: params.to,
       subject: `Your enquiry to ${params.schoolName} has been sent`,
@@ -38,7 +44,7 @@ export async function sendEnquiryEmail(params: EnquiryEmailParams) {
   }
 
   if (params.type === "school_notification") {
-    return resend.emails.send({
+    return getResend().emails.send({
       from: "mydscvr.ai <leads@mydscvr.ai>",
       to: params.to,
       subject: "New Admissions Enquiry from mydscvr.ai",

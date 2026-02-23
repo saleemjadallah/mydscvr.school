@@ -3,7 +3,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import db from "@/db";
 import { rateLimit, getClientIP } from "@/lib/rate-limit";
 
-const claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+let _claude: Anthropic | null = null;
+function getClaude() { return _claude ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); }
 
 // POST /api/search/chat — Conversational AI search (multi-turn)
 export async function POST(request: NextRequest) {
@@ -54,7 +55,7 @@ Ask clarifying questions if needed: child's age/grade, preferred area, budget, c
 Always mention you can help them send an enquiry directly through mydscvr.ai.
 Keep responses concise and practical.`;
 
-    const response = await claude.messages.create({
+    const response = await getClaude().messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 800,
       system: systemPrompt,
