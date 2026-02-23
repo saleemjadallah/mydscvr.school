@@ -1,0 +1,250 @@
+// ============================================
+// SCHOOL TYPES
+// ============================================
+export interface School {
+  id: string;
+  slug: string;
+  name: string;
+  type: "school" | "nursery";
+
+  // Location
+  address: string | null;
+  area: string | null;
+  city: string;
+  latitude: number | null;
+  longitude: number | null;
+  google_place_id: string | null;
+
+  // Identity
+  curriculum: string[];
+  phases: string[];
+  gender: "boys" | "girls" | "mixed";
+  religion: string;
+  languages: string[];
+
+  // KHDA
+  khda_rating: KHDARating | null;
+  khda_rating_year: number | null;
+  khda_school_id: string | null;
+  khda_inspection_url: string | null;
+  khda_report_path: string | null;
+
+  // Fees
+  fee_min: number | null;
+  fee_max: number | null;
+  fee_currency: string;
+  fee_last_updated: string | null;
+
+  // Capacity
+  total_students: number | null;
+  capacity: number | null;
+
+  // Contact
+  website: string | null;
+  phone: string | null;
+  email: string | null;
+  whatsapp: string | null;
+  admission_email: string | null;
+
+  // Google
+  google_rating: number | null;
+  google_review_count: number | null;
+  google_photos: string[] | null;
+
+  // Features
+  has_sen_support: boolean;
+  has_transport: boolean;
+  has_boarding: boolean;
+  has_after_school: boolean;
+  has_sports_facilities: boolean;
+  has_swimming_pool: boolean;
+  has_arts_program: boolean;
+  is_accredited: boolean;
+
+  // AI
+  ai_summary: string | null;
+  ai_strengths: string[] | null;
+  ai_considerations: string[] | null;
+
+  // SEO
+  meta_title: string | null;
+  meta_description: string | null;
+
+  // Status
+  is_active: boolean;
+  is_claimed: boolean;
+  is_featured: boolean;
+  is_verified: boolean;
+
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+  last_scraped_at: string | null;
+
+  // Joined data (optional)
+  khda_reports?: KHDAReport[];
+  reviews?: Review[];
+  fee_history?: FeeHistory[];
+  enquiry_count_30d?: number;
+  semantic_score?: number;
+}
+
+export type KHDARating =
+  | "Outstanding"
+  | "Very Good"
+  | "Good"
+  | "Acceptable"
+  | "Weak"
+  | "Very Weak";
+
+// ============================================
+// KHDA REPORT
+// ============================================
+export interface KHDAReport {
+  id: string;
+  school_id: string;
+  year: number;
+  rating: string;
+  report_url: string | null;
+  report_path: string | null;
+  raw_text: string | null;
+  ai_summary: string | null;
+  key_findings: Record<string, unknown> | null;
+  created_at: string;
+}
+
+// ============================================
+// FEE HISTORY
+// ============================================
+export interface FeeHistory {
+  id: string;
+  school_id: string;
+  year: number;
+  grade: string | null;
+  fee_aed: number;
+  source: string;
+  scraped_at: string;
+}
+
+// ============================================
+// REVIEW
+// ============================================
+export interface Review {
+  id: string;
+  school_id: string;
+  source: "google" | "internal";
+  rating: number | null;
+  text: string | null;
+  author: string | null;
+  author_type: "parent" | "student" | "teacher" | null;
+  language: string;
+  is_verified: boolean;
+  sentiment: "positive" | "neutral" | "negative" | null;
+  ai_summary: string | null;
+  helpful_count: number;
+  published_at: string | null;
+  created_at: string;
+}
+
+// ============================================
+// ENQUIRY
+// ============================================
+export interface Enquiry {
+  id: string;
+  school_id: string;
+  parent_name: string;
+  parent_email: string;
+  parent_phone: string | null;
+  parent_whatsapp: string | null;
+  nationality: string | null;
+  current_area: string | null;
+  child_name: string | null;
+  child_dob: string | null;
+  child_grade: string | null;
+  child_year: number | null;
+  message: string | null;
+  preferred_start: string | null;
+  siblings: boolean;
+  source: "search" | "profile" | "compare" | "ai_chat" | null;
+  search_query: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  status: "new" | "sent_to_school" | "responded" | "enrolled" | "rejected";
+  sent_to_school_at: string | null;
+  responded_at: string | null;
+  is_billed: boolean;
+  billed_at: string | null;
+  billed_amount: number | null;
+  created_at: string;
+  school_name?: string;
+}
+
+// ============================================
+// USER
+// ============================================
+export interface User {
+  id: string;
+  clerk_id: string;
+  email: string;
+  name: string | null;
+  phone: string | null;
+  nationality: string | null;
+  current_area: string | null;
+  children_count: number | null;
+  plan: "free" | "premium";
+  preferred_curricula: string[] | null;
+  preferred_areas: string[] | null;
+  budget_min: number | null;
+  budget_max: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================
+// SEARCH
+// ============================================
+export interface SearchIntent {
+  type: "school" | "nursery" | null;
+  curriculum: string[] | null;
+  areas: string[] | null;
+  khda_rating: string | null;
+  fee_max_aed: number | null;
+  fee_min_aed: number | null;
+  has_sen: boolean | null;
+  gender: "mixed" | "boys" | "girls" | null;
+  phases: string[] | null;
+  features: string[] | null;
+  summary: string;
+}
+
+export interface SearchResponse {
+  query: string;
+  intent: SearchIntent;
+  schools: School[];
+  ai_explanation: string;
+  total: number;
+}
+
+export interface SchoolListResponse {
+  schools: School[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+// ============================================
+// API PARAMS
+// ============================================
+export interface SchoolFilters {
+  type?: "school" | "nursery";
+  area?: string;
+  curriculum?: string;
+  rating?: KHDARating;
+  fee_min?: string;
+  fee_max?: string;
+  has_sen?: string;
+  page?: string;
+  limit?: string;
+  sort?: "rating" | "fee_asc" | "fee_desc" | "reviews";
+}
