@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = "force-dynamic";
+
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
@@ -16,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import ReactMarkdown from 'react-markdown';
 import type { School, KHDARating } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -571,12 +574,8 @@ export default function ComparePage() {
                 AI Comparison
               </span>
             </div>
-            <div className="prose prose-sm max-w-none text-gray-700">
-              {aiComparison.split('\n').map((line, i) => (
-                <p key={i} className="mb-2 last:mb-0">
-                  {line}
-                </p>
-              ))}
+            <div className="prose prose-sm max-w-none text-gray-700 prose-headings:text-gray-900 prose-strong:text-gray-900 prose-li:marker:text-[#FF6B35]">
+              <ReactMarkdown>{aiComparison}</ReactMarkdown>
             </div>
           </div>
         )}

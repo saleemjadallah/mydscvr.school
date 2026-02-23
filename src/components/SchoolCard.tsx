@@ -3,9 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Star, MapPin, BookOpen, Heart } from "lucide-react";
+import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import type { School, KHDARating } from "@/types";
+import type { School } from "@/types";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -61,9 +61,11 @@ interface SchoolCardProps {
     | "has_sen_support"
     | "is_featured"
   >;
+  isSaved?: boolean;
+  onToggleSave?: (schoolId: string) => void;
 }
 
-export default function SchoolCard({ school }: SchoolCardProps) {
+export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCardProps) {
   const photos = resolvePhotos(school.google_photos as string[] | string | null);
   const heroPhoto = photos[0] ?? null;
   const khdaColors = school.khda_rating
@@ -71,156 +73,191 @@ export default function SchoolCard({ school }: SchoolCardProps) {
     : null;
 
   return (
-    <Link
-      href={`/schools/${school.slug}`}
-      className="group relative flex gap-4 rounded-xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+    <motion.div
+      whileHover={{ y: -2 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
     >
-      {/* ---- Save / Heart icon ---- */}
-      <button
-        type="button"
-        aria-label="Save school"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          // TODO: implement save/bookmark
+      <Link
+        href={`/schools/${school.slug}`}
+        className="group relative flex gap-5 rounded-2xl bg-white p-5 transition-all"
+        style={{
+          boxShadow: "var(--shadow-card)",
         }}
-        className="absolute right-3 top-3 z-10 rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-[#FF6B35]"
+        onMouseEnter={(e) => {
+          e.currentTarget.style.boxShadow = "var(--shadow-card-hover)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.boxShadow = "var(--shadow-card)";
+        }}
       >
-        <Heart className="size-5" />
-      </button>
-
-      {/* ---- Left: Photo ---- */}
-      <div className="flex-shrink-0">
-        {heroPhoto ? (
-          <Image
-            src={heroPhoto}
-            alt={school.name}
-            width={112}
-            height={112}
-            className="size-28 rounded-lg object-cover"
-          />
-        ) : (
-          <div className="flex size-28 items-center justify-center rounded-lg bg-[#FF6B35]/10">
-            <BookOpen className="size-10 text-[#FF6B35]" />
-          </div>
-        )}
-      </div>
-
-      {/* ---- Center: Details ---- */}
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        {/* Badges row */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          {school.is_featured && (
-            <Badge className="bg-[#FF6B35] text-white text-[10px] px-1.5 py-0">
-              Featured
-            </Badge>
-          )}
-          {school.khda_rating && khdaColors && (
-            <Badge
-              variant="secondary"
-              className={`${khdaColors.bg} ${khdaColors.text} border-0 text-[10px] px-1.5 py-0`}
+        {/* ---- Left: Photo with heart overlay ---- */}
+        <div className="relative flex-shrink-0">
+          {heroPhoto ? (
+            <div className="relative overflow-hidden rounded-xl">
+              <Image
+                src={heroPhoto}
+                alt={school.name}
+                width={128}
+                height={128}
+                className="size-32 rounded-xl object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              <div className="pointer-events-none absolute inset-0 rounded-xl bg-gradient-to-t from-black/10 to-transparent" />
+            </div>
+          ) : (
+            <div
+              className="flex size-32 items-center justify-center rounded-xl"
+              style={{
+                background: "linear-gradient(135deg, rgba(255,107,53,0.1), rgba(168,85,247,0.1))",
+              }}
             >
-              KHDA: {school.khda_rating}
-            </Badge>
+              <BookOpen className="size-10 text-[#FF6B35]/60" />
+            </div>
           )}
+          {/* Heart icon on photo */}
+          <motion.button
+            type="button"
+            aria-label={isSaved ? "Remove from saved" : "Save school"}
+            whileTap={{ scale: 1.3 }}
+            transition={{ type: "spring", stiffness: 500, damping: 15 }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleSave?.(school.id);
+            }}
+            className={`absolute right-1.5 top-1.5 z-10 rounded-full p-1.5 transition-colors ${
+              isSaved
+                ? "bg-white/90 text-[#FF6B35]"
+                : "bg-white/70 text-gray-400 hover:bg-white/90 hover:text-[#FF6B35]"
+            }`}
+          >
+            <Heart className={`size-4 ${isSaved ? "fill-[#FF6B35]" : ""}`} />
+          </motion.button>
         </div>
 
-        {/* School name */}
-        <h3 className="truncate text-base font-bold text-gray-900 group-hover:text-[#FF6B35]">
-          {school.name}
-        </h3>
-
-        {/* Area */}
-        {school.area && (
-          <div className="flex items-center gap-1 text-sm text-gray-500">
-            <MapPin className="size-3.5 flex-shrink-0" />
-            <span className="truncate">{school.area}</span>
-          </div>
-        )}
-
-        {/* Google rating */}
-        {school.google_rating != null && (
-          <div className="flex items-center gap-1 text-sm">
-            <Star className="size-3.5 flex-shrink-0 fill-amber-400 text-amber-400" />
-            <span className="font-medium text-gray-700">
-              {school.google_rating.toFixed(1)}
-            </span>
-            {school.google_review_count != null && (
-              <span className="text-gray-400">
-                ({school.google_review_count.toLocaleString()})
-              </span>
+        {/* ---- Center: Details ---- */}
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          {/* Badges row */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {school.is_featured && (
+              <Badge
+                className="border-0 text-[10px] px-2 py-0.5 text-white font-semibold"
+                style={{
+                  background: "linear-gradient(135deg, #FF6B35, #FBBF24)",
+                }}
+              >
+                Featured
+              </Badge>
+            )}
+            {school.khda_rating && khdaColors && (
+              <Badge
+                variant="secondary"
+                className={`${khdaColors.bg} ${khdaColors.text} border-0 text-[10px] px-2 py-0.5`}
+              >
+                KHDA: {school.khda_rating}
+              </Badge>
             )}
           </div>
-        )}
 
-        {/* Curriculum badges */}
-        {school.curriculum && school.curriculum.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {school.curriculum.map((c) => (
-              <Badge
-                key={c}
-                variant="outline"
-                className="text-[10px] px-1.5 py-0 text-gray-600"
-              >
-                {c}
-              </Badge>
-            ))}
-          </div>
-        )}
+          {/* School name */}
+          <h3 className="truncate text-base font-bold text-gray-900 group-hover:text-[#FF6B35] transition-colors">
+            {school.name}
+          </h3>
 
-        {/* SEN badge */}
-        {school.has_sen_support && (
-          <Badge
-            variant="secondary"
-            className="w-fit bg-purple-100 text-purple-700 border-0 text-[10px] px-1.5 py-0"
-          >
-            SEN Support
-          </Badge>
-        )}
+          {/* Area */}
+          {school.area && (
+            <div className="flex items-center gap-1 text-sm text-gray-500">
+              <MapPin className="size-3.5 flex-shrink-0" />
+              <span className="truncate">{school.area}</span>
+            </div>
+          )}
 
-        {/* AI summary */}
-        {school.ai_summary && (
-          <p className="line-clamp-2 text-xs leading-relaxed text-gray-500">
-            {school.ai_summary}
-          </p>
-        )}
-      </div>
+          {/* Google rating */}
+          {school.google_rating != null && (
+            <div className="flex items-center gap-1 text-sm">
+              <Star className="size-3.5 flex-shrink-0 fill-amber-400 text-amber-400" />
+              <span className="font-medium text-gray-700">
+                {school.google_rating.toFixed(1)}
+              </span>
+              {school.google_review_count != null && (
+                <span className="text-gray-400">
+                  ({school.google_review_count.toLocaleString()})
+                </span>
+              )}
+            </div>
+          )}
 
-      {/* ---- Right: Fees & CTA ---- */}
-      <div className="flex flex-shrink-0 flex-col items-end justify-between">
-        <div className="text-right">
-          {(school.fee_min != null || school.fee_max != null) && (
-            <>
-              <p className="text-xs text-gray-400">Annual fees</p>
-              <p className="text-sm font-semibold text-gray-900">
-                {school.fee_min != null && school.fee_max != null ? (
-                  <>
-                    AED {formatFee(school.fee_min)} &ndash;{" "}
-                    {formatFee(school.fee_max)}
-                  </>
-                ) : school.fee_min != null ? (
-                  <>From AED {formatFee(school.fee_min)}</>
-                ) : school.fee_max != null ? (
-                  <>Up to AED {formatFee(school.fee_max)}</>
-                ) : null}
-              </p>
-            </>
+          {/* Curriculum badges */}
+          {school.curriculum && school.curriculum.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {school.curriculum.map((c) => (
+                <Badge
+                  key={c}
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 text-gray-600"
+                >
+                  {c}
+                </Badge>
+              ))}
+            </div>
+          )}
+
+          {/* SEN badge */}
+          {school.has_sen_support && (
+            <Badge
+              variant="secondary"
+              className="w-fit bg-purple-100 text-purple-700 border-0 text-[10px] px-1.5 py-0"
+            >
+              SEN Support
+            </Badge>
+          )}
+
+          {/* AI summary */}
+          {school.ai_summary && (
+            <p className="line-clamp-2 text-xs leading-relaxed text-gray-500 border-l-2 border-[#FF6B35]/20 pl-2.5">
+              {school.ai_summary}
+            </p>
           )}
         </div>
 
-        <Button
-          size="sm"
-          className="mt-2 bg-[#FF6B35] text-white hover:bg-[#FF6B35]/90"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            // Navigate to the profile enquiry section
-            window.location.href = `/schools/${school.slug}#enquire`;
-          }}
-        >
-          Enquire Now
-        </Button>
-      </div>
-    </Link>
+        {/* ---- Right: Fees & CTA ---- */}
+        <div className="flex flex-shrink-0 flex-col items-end justify-between">
+          <div className="text-right">
+            {(school.fee_min != null || school.fee_max != null) && (
+              <>
+                <p className="text-xs text-gray-400">Annual fees</p>
+                <p className="text-sm font-semibold text-gray-900">
+                  {school.fee_min != null && school.fee_max != null ? (
+                    <>
+                      AED {formatFee(school.fee_min)} &ndash;{" "}
+                      {formatFee(school.fee_max)}
+                    </>
+                  ) : school.fee_min != null ? (
+                    <>From AED {formatFee(school.fee_min)}</>
+                  ) : school.fee_max != null ? (
+                    <>Up to AED {formatFee(school.fee_max)}</>
+                  ) : null}
+                </p>
+              </>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className="mt-2 rounded-lg px-4 py-2 text-xs font-semibold text-white transition-all hover:opacity-90"
+            style={{
+              background: "linear-gradient(135deg, #FF6B35, #F59E0B)",
+              boxShadow: "0 2px 8px rgba(255, 107, 53, 0.25)",
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.location.href = `/schools/${school.slug}#enquire`;
+            }}
+          >
+            Enquire Now
+          </button>
+        </div>
+      </Link>
+    </motion.div>
   );
 }

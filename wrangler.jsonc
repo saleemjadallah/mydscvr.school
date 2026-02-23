@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mydscvr-ai",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-02-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+
+  // Custom domain — mydscvr.ai
+  // This routes traffic from your domain to this Worker.
+  // Before deploying, remove mydscvr.ai from the old Pages project first.
+  "routes": [
+    { "pattern": "mydscvr.ai", "zone_name": "mydscvr.ai" },
+    { "pattern": "www.mydscvr.ai", "zone_name": "mydscvr.ai" }
+  ]
+}

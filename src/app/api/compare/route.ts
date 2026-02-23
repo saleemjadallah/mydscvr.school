@@ -1,11 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import db from "@/db";
+import { rateLimit, getClientIP } from "@/lib/rate-limit";
 
 const claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // POST /api/compare — AI-powered school comparison
 export async function POST(request: NextRequest) {
+  // Rate limit: 10 comparisons per minute per IP (Sonnet is expensive)
+  const ip = getClientIP(request);
+  const rl = rateLimit(`compare:${ip}`, { limit: 10, windowSeconds: 60 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many comparisons. Please wait a moment." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rl.resetIn) },
+      }
+    );
+  }
+
   const { school_ids, query } = await request.json();
 
   if (!school_ids || school_ids.length < 2) {

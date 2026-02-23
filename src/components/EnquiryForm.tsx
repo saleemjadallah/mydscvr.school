@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -24,6 +24,10 @@ interface EnquiryFormValues {
   parent_name: string;
   parent_email: string;
   parent_phone: string;
+  parent_whatsapp: string;
+  nationality: string;
+  child_name: string;
+  child_dob: string;
   child_grade: string;
   preferred_start: string;
   message: string;
@@ -35,6 +39,7 @@ interface EnquiryFormValues {
 
 export default function EnquiryForm({ school }: EnquiryFormProps) {
   const [submitted, setSubmitted] = useState(false);
+  const [showMore, setShowMore] = useState(false);
 
   const {
     register,
@@ -46,6 +51,10 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
       parent_name: "",
       parent_email: "",
       parent_phone: "",
+      parent_whatsapp: "",
+      nationality: "",
+      child_name: "",
+      child_dob: "",
       child_grade: "",
       preferred_start: "",
       message: "",
@@ -63,6 +72,10 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
           parent_name: data.parent_name,
           parent_email: data.parent_email,
           parent_phone: data.parent_phone || null,
+          parent_whatsapp: data.parent_whatsapp || null,
+          nationality: data.nationality || null,
+          child_name: data.child_name || null,
+          child_dob: data.child_dob || null,
           child_grade: data.child_grade || null,
           preferred_start: data.preferred_start || null,
           message: data.message || null,
@@ -164,8 +177,17 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
           id="parent_phone"
           type="tel"
           placeholder="+971 50 123 4567"
-          {...register("parent_phone")}
+          {...register("parent_phone", {
+            pattern: {
+              value: /^[+]?[\d\s()-]{7,20}$/,
+              message: "Please enter a valid phone number",
+            },
+          })}
+          aria-invalid={!!errors.parent_phone}
         />
+        {errors.parent_phone && (
+          <p className="text-xs text-red-500">{errors.parent_phone.message}</p>
+        )}
       </div>
 
       {/* Child grade */}
@@ -178,22 +200,96 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
         />
       </div>
 
-      {/* Preferred start */}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="preferred_start">Preferred Start Date</Label>
-        <Input
-          id="preferred_start"
-          type="date"
-          {...register("preferred_start")}
-        />
-      </div>
+      {/* Show more toggle */}
+      <button
+        type="button"
+        onClick={() => setShowMore(!showMore)}
+        className="flex items-center gap-1 text-xs font-medium text-[#FF6B35] hover:underline"
+      >
+        {showMore ? (
+          <>
+            <ChevronUp className="size-3.5" />
+            Show fewer fields
+          </>
+        ) : (
+          <>
+            <ChevronDown className="size-3.5" />
+            Add more details (optional)
+          </>
+        )}
+      </button>
+
+      {/* Expandable fields */}
+      {showMore && (
+        <div className="flex flex-col gap-5">
+          {/* WhatsApp */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="parent_whatsapp">WhatsApp Number</Label>
+            <Input
+              id="parent_whatsapp"
+              type="tel"
+              placeholder="+971 50 123 4567"
+              {...register("parent_whatsapp", {
+                pattern: {
+                  value: /^[+]?[\d\s()-]{7,20}$/,
+                  message: "Please enter a valid WhatsApp number",
+                },
+              })}
+              aria-invalid={!!errors.parent_whatsapp}
+            />
+            {errors.parent_whatsapp && (
+              <p className="text-xs text-red-500">{errors.parent_whatsapp.message}</p>
+            )}
+          </div>
+
+          {/* Nationality */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="nationality">Nationality</Label>
+            <Input
+              id="nationality"
+              placeholder="e.g. British, Indian, Emirati"
+              {...register("nationality")}
+            />
+          </div>
+
+          {/* Child name */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="child_name">Child&apos;s Name</Label>
+            <Input
+              id="child_name"
+              placeholder="e.g. Adam"
+              {...register("child_name")}
+            />
+          </div>
+
+          {/* Child DOB */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="child_dob">Child&apos;s Date of Birth</Label>
+            <Input
+              id="child_dob"
+              type="date"
+              {...register("child_dob")}
+            />
+          </div>
+
+          {/* Preferred start */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="preferred_start">Preferred Start Date</Label>
+            <Input
+              id="preferred_start"
+              type="date"
+              {...register("preferred_start")}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Message */}
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="message">Message</Label>
         <Textarea
           id="message"
-          rows={4}
+          rows={3}
           placeholder="Any questions or additional information..."
           {...register("message")}
         />

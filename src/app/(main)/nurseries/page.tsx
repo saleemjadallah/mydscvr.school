@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = "force-dynamic";
+
 import { useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -14,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import SchoolCard from '@/components/SchoolCard';
+import { useSavedSchools } from '@/hooks/useSavedSchools';
 import type {
   School,
   SearchResponse,
@@ -273,6 +276,8 @@ function NurseriesPageContent() {
   const [searchInput, setSearchInput] = useState(queryParam);
   const [page] = useState(1);
 
+  const { isSaved, toggleSave } = useSavedSchools();
+
   const isAISearch = queryParam.length > 0;
 
   const aiQuery = useQuery<SearchResponse>({
@@ -519,7 +524,12 @@ function NurseriesPageContent() {
               ) : (
                 <div className="space-y-4">
                   {schools.map((school) => (
-                    <SchoolCard key={school.id} school={school} />
+                    <SchoolCard
+                      key={school.id}
+                      school={school}
+                      isSaved={isSaved(school.id)}
+                      onToggleSave={toggleSave}
+                    />
                   ))}
                 </div>
               )}

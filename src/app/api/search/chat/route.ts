@@ -1,11 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import db from "@/db";
+import { rateLimit, getClientIP } from "@/lib/rate-limit";
 
 const claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // POST /api/search/chat — Conversational AI search (multi-turn)
 export async function POST(request: NextRequest) {
+  // Rate limit: 30 chat messages per minute per IP
+  const ip = getClientIP(request);
+  const rl = rateLimit(`chat:${ip}`, { limit: 30, windowSeconds: 60 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many messages. Please wait a moment." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rl.resetIn) },
+      }
+    );
+  }
+
   const { messages, session_id } = await request.json();
 
   try {

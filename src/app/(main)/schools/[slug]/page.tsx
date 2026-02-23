@@ -23,7 +23,6 @@ import {
   ChevronRight,
   ExternalLink,
   FileText,
-  CalendarDays,
   BookOpen,
   BadgeCheck,
   ThumbsUp,
@@ -35,6 +34,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import EnquiryForm from "@/components/EnquiryForm";
 import SchoolNews from "@/components/SchoolNews";
+import SimilarSchools from "@/components/SimilarSchools";
+import ProfileMap from "@/components/ProfileMap";
+import AnimatedSection from "@/components/AnimatedSection";
 import type { School, KHDARating, KHDAReport, FeeHistory, Review } from "@/types";
 
 // ---------------------------------------------------------------------------
@@ -100,13 +102,6 @@ function formatFee(amount: number): string {
     style: "decimal",
     maximumFractionDigits: 0,
   }).format(amount);
-}
-
-function ratingStars(rating: number): string {
-  const full = Math.floor(rating);
-  const half = rating - full >= 0.5 ? 1 : 0;
-  const empty = 5 - full - half;
-  return "★".repeat(full) + (half ? "½" : "") + "☆".repeat(empty);
 }
 
 function sentimentColor(
@@ -271,199 +266,225 @@ export default async function SchoolProfilePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Breadcrumb */}
-        <nav className="mb-6 flex items-center gap-1.5 text-sm text-gray-500">
-          <Link href="/" className="hover:text-gray-700">
-            Home
-          </Link>
-          <ChevronRight className="size-3.5" />
-          <Link href="/schools" className="hover:text-gray-700">
-            Schools
-          </Link>
-          <ChevronRight className="size-3.5" />
-          <span className="truncate font-medium text-gray-900">
-            {school.name}
-          </span>
-        </nav>
+      {/* ================================================================
+          FULL-BLEED CINEMATIC HERO
+          ================================================================ */}
+      <section className="relative">
+        {photos.length > 0 ? (
+          <div className="relative h-[40vh] min-h-[320px] w-full overflow-hidden">
+            <Image
+              src={photos[0]}
+              alt={school.name}
+              fill
+              className="object-cover"
+              sizes="100vw"
+              priority
+            />
+            {/* Dark gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0A1628] via-[#0A1628]/50 to-transparent" />
+          </div>
+        ) : (
+          <div
+            className="relative h-[40vh] min-h-[320px] w-full"
+            style={{ background: "var(--gradient-hero)" }}
+          >
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Building2 className="size-20 text-white/10" />
+            </div>
+          </div>
+        )}
 
+        {/* Hero content overlay */}
+        <div className="absolute inset-x-0 bottom-0 z-10">
+          <div className="mx-auto max-w-7xl px-4 pb-8 sm:px-6 lg:px-8">
+            {/* Breadcrumb */}
+            <nav className="mb-4 flex items-center gap-1.5 text-sm text-white/60">
+              <Link href="/" className="hover:text-white/80">
+                Home
+              </Link>
+              <ChevronRight className="size-3.5" />
+              <Link href="/schools" className="hover:text-white/80">
+                Schools
+              </Link>
+              <ChevronRight className="size-3.5" />
+              <span className="truncate text-white/90 font-medium">
+                {school.name}
+              </span>
+            </nav>
+
+            {/* School name */}
+            <h1 className="font-display text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
+              {school.name}
+            </h1>
+
+            {/* Badges */}
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              {school.khda_rating && khdaColors && (
+                <Badge
+                  className={`${khdaColors.bg} ${khdaColors.text} border-0 gap-1.5 px-2.5 py-1 text-xs font-semibold`}
+                >
+                  <span
+                    className={`inline-block size-2 rounded-full ${khdaColors.dot}`}
+                  />
+                  KHDA: {school.khda_rating}
+                  {school.khda_rating_year && (
+                    <span className="opacity-70">
+                      ({school.khda_rating_year})
+                    </span>
+                  )}
+                </Badge>
+              )}
+
+              {school.area && (
+                <Badge className="glass-dark border-white/10 gap-1 text-xs text-white/90">
+                  <MapPin className="size-3" />
+                  {school.area}
+                </Badge>
+              )}
+
+              {school.curriculum?.map((c) => (
+                <Badge
+                  key={c}
+                  className="glass-dark border-white/10 text-xs text-white/90"
+                >
+                  {c}
+                </Badge>
+              ))}
+
+              {school.google_rating != null && (
+                <Badge className="glass-dark border-white/10 gap-1 text-xs text-white/90">
+                  <Star className="size-3 fill-amber-400 text-amber-400" />
+                  {school.google_rating.toFixed(1)}
+                  {school.google_review_count != null && (
+                    <span className="text-white/60">
+                      ({school.google_review_count.toLocaleString()})
+                    </span>
+                  )}
+                </Badge>
+              )}
+
+              {school.is_verified && (
+                <Badge className="gap-1 border-0 bg-emerald-100 text-xs text-emerald-700">
+                  <BadgeCheck className="size-3" />
+                  Verified
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Photo strip (thumbnails) */}
+      {photos.length > 1 && (
+        <div className="relative z-10 -mt-6 px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {photos.slice(1, 6).map((photo, idx) => (
+                <div
+                  key={idx}
+                  className="relative h-20 w-28 flex-shrink-0 overflow-hidden rounded-xl sm:h-24 sm:w-36"
+                  style={{ boxShadow: "var(--shadow-card)" }}
+                >
+                  <Image
+                    src={photo}
+                    alt={`${school.name} — photo ${idx + 2}`}
+                    fill
+                    className="object-cover"
+                    sizes="144px"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         {/* Main grid: 2/3 content + 1/3 sidebar */}
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
           {/* ================================================================
               MAIN CONTENT (col-span-2)
               ================================================================ */}
-          <div className="space-y-8 lg:col-span-2">
-            {/* ----------------------------------------------------------
-                1. HERO SECTION
-                ---------------------------------------------------------- */}
-            <section>
-              {/* Photo gallery — horizontal scroll */}
-              {photos.length > 0 && (
-                <div className="mb-6 flex gap-3 overflow-x-auto rounded-xl pb-2">
-                  {photos.map((photo, idx) => (
-                    <div
-                      key={idx}
-                      className="relative h-56 w-80 flex-shrink-0 overflow-hidden rounded-xl sm:h-64 sm:w-96"
-                    >
-                      <Image
-                        src={photo}
-                        alt={`${school.name} — photo ${idx + 1}`}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 320px, 384px"
-                        priority={idx === 0}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* If no photos, show a fallback hero */}
-              {photos.length === 0 && (
-                <div className="mb-6 flex h-48 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF6B35]/10 to-orange-50">
-                  <Building2 className="size-16 text-[#FF6B35]/40" />
-                </div>
-              )}
-
-              {/* School name + badges */}
-              <div className="flex flex-col gap-3">
-                <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-                  {school.name}
-                </h1>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* KHDA rating badge */}
-                  {school.khda_rating && khdaColors && (
-                    <Badge
-                      className={`${khdaColors.bg} ${khdaColors.text} border-0 gap-1.5 px-2.5 py-1 text-xs font-semibold`}
-                    >
-                      <span
-                        className={`inline-block size-2 rounded-full ${khdaColors.dot}`}
-                      />
-                      KHDA: {school.khda_rating}
-                      {school.khda_rating_year && (
-                        <span className="opacity-70">
-                          ({school.khda_rating_year})
-                        </span>
-                      )}
-                    </Badge>
-                  )}
-
-                  {/* Area */}
-                  {school.area && (
-                    <Badge
-                      variant="outline"
-                      className="gap-1 text-xs text-gray-600"
-                    >
-                      <MapPin className="size-3" />
-                      {school.area}
-                    </Badge>
-                  )}
-
-                  {/* Curriculum badges */}
-                  {school.curriculum?.map((c) => (
-                    <Badge
-                      key={c}
-                      variant="secondary"
-                      className="border-0 bg-[#FF6B35]/10 text-xs text-[#FF6B35]"
-                    >
-                      {c}
-                    </Badge>
-                  ))}
-
-                  {/* Google rating */}
-                  {school.google_rating != null && (
-                    <Badge
-                      variant="outline"
-                      className="gap-1 text-xs text-gray-600"
-                    >
-                      <Star className="size-3 fill-amber-400 text-amber-400" />
-                      {school.google_rating.toFixed(1)}
-                      {school.google_review_count != null && (
-                        <span className="text-gray-400">
-                          ({school.google_review_count.toLocaleString()})
-                        </span>
-                      )}
-                    </Badge>
-                  )}
-
-                  {/* Verified / Accredited */}
-                  {school.is_verified && (
-                    <Badge className="gap-1 border-0 bg-emerald-100 text-xs text-emerald-700">
-                      <BadgeCheck className="size-3" />
-                      Verified
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </section>
-
+          <div className="space-y-12 lg:col-span-2">
             {/* ----------------------------------------------------------
                 2. AI SUMMARY CARD
                 ---------------------------------------------------------- */}
             {school.ai_summary && (
-              <section className="rounded-xl border bg-gradient-to-br from-purple-50/60 to-white p-6 shadow-sm">
-                <div className="mb-3 flex items-center gap-2">
-                  <Sparkles className="size-5 text-purple-600" />
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    AI Summary
-                  </h2>
-                </div>
+              <AnimatedSection>
+                <div className="relative overflow-hidden rounded-2xl border border-purple-100/50 bg-gradient-to-br from-purple-50/60 via-white to-[#FF6B35]/5 p-6" style={{ boxShadow: "var(--shadow-card)" }}>
+                  {/* Decorative blur orb */}
+                  <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-purple-200/30 blur-2xl" />
 
-                <p className="mb-4 leading-relaxed text-gray-700">
-                  {school.ai_summary}
-                </p>
-
-                {/* Strengths */}
-                {school.ai_strengths && school.ai_strengths.length > 0 && (
-                  <div className="mb-3">
-                    <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-600">
-                      Strengths
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {school.ai_strengths.map((s, i) => (
-                        <Badge
-                          key={i}
-                          className="border-0 bg-emerald-100 text-xs font-medium text-emerald-700"
-                        >
-                          {s}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Considerations */}
-                {school.ai_considerations &&
-                  school.ai_considerations.length > 0 && (
-                    <div>
-                      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-amber-600">
-                        Considerations
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {school.ai_considerations.map((c, i) => (
-                          <Badge
-                            key={i}
-                            className="border-0 bg-amber-100 text-xs font-medium text-amber-700"
-                          >
-                            {c}
-                          </Badge>
-                        ))}
+                  <div className="relative">
+                    <div className="mb-3 flex items-center gap-2.5">
+                      <div
+                        className="flex size-9 items-center justify-center rounded-lg"
+                        style={{
+                          background: "linear-gradient(135deg, #6B21A8, #A855F7)",
+                        }}
+                      >
+                        <Sparkles className="size-4 text-white" />
                       </div>
+                      <h2 className="font-display text-lg font-semibold text-gray-900">
+                        AI Summary
+                      </h2>
                     </div>
-                  )}
-              </section>
+
+                    <p className="mb-4 leading-relaxed text-gray-700">
+                      {school.ai_summary}
+                    </p>
+
+                    {/* Strengths */}
+                    {school.ai_strengths && school.ai_strengths.length > 0 && (
+                      <div className="mb-3">
+                        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-600">
+                          Strengths
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {school.ai_strengths.map((s, i) => (
+                            <Badge
+                              key={i}
+                              className="border-0 bg-emerald-100 text-xs font-medium text-emerald-700"
+                            >
+                              {s}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Considerations */}
+                    {school.ai_considerations &&
+                      school.ai_considerations.length > 0 && (
+                        <div>
+                          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-amber-600">
+                            Considerations
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {school.ai_considerations.map((c, i) => (
+                              <Badge
+                                key={i}
+                                className="border-0 bg-amber-100 text-xs font-medium text-amber-700"
+                              >
+                                {c}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                </div>
+              </AnimatedSection>
             )}
 
             {/* ----------------------------------------------------------
                 3. QUICK FACTS GRID
                 ---------------------------------------------------------- */}
-            <section>
-              <h2 className="mb-4 text-lg font-semibold text-gray-900">
+            <AnimatedSection delay={0.1}>
+              <h2 className="mb-5 font-display text-xl font-semibold text-gray-900">
                 Quick Facts
               </h2>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {/* KHDA Rating */}
                 {school.khda_rating && (
                   <QuickFact
                     icon={<ShieldCheck className="size-5 text-emerald-600" />}
@@ -471,8 +492,6 @@ export default async function SchoolProfilePage({
                     value={school.khda_rating}
                   />
                 )}
-
-                {/* Fee Range */}
                 {(school.fee_min != null || school.fee_max != null) && (
                   <QuickFact
                     icon={<DollarSign className="size-5 text-[#FF6B35]" />}
@@ -486,8 +505,6 @@ export default async function SchoolProfilePage({
                     }
                   />
                 )}
-
-                {/* Curriculum */}
                 {school.curriculum?.length > 0 && (
                   <QuickFact
                     icon={<BookOpen className="size-5 text-blue-600" />}
@@ -495,8 +512,6 @@ export default async function SchoolProfilePage({
                     value={school.curriculum.join(", ")}
                   />
                 )}
-
-                {/* Gender */}
                 <QuickFact
                   icon={<Users className="size-5 text-purple-600" />}
                   label="Gender"
@@ -508,19 +523,13 @@ export default async function SchoolProfilePage({
                         : "Girls Only"
                   }
                 />
-
-                {/* Phases */}
                 {school.phases?.length > 0 && (
                   <QuickFact
-                    icon={
-                      <GraduationCap className="size-5 text-indigo-600" />
-                    }
+                    icon={<GraduationCap className="size-5 text-indigo-600" />}
                     label="Phases"
                     value={school.phases.join(", ")}
                   />
                 )}
-
-                {/* Transport */}
                 {school.has_transport && (
                   <QuickFact
                     icon={<Bus className="size-5 text-cyan-600" />}
@@ -528,8 +537,6 @@ export default async function SchoolProfilePage({
                     value="Available"
                   />
                 )}
-
-                {/* SEN Support */}
                 {school.has_sen_support && (
                   <QuickFact
                     icon={<ShieldCheck className="size-5 text-pink-600" />}
@@ -537,8 +544,6 @@ export default async function SchoolProfilePage({
                     value="Available"
                   />
                 )}
-
-                {/* Sports */}
                 {school.has_sports_facilities && (
                   <QuickFact
                     icon={<Dumbbell className="size-5 text-orange-600" />}
@@ -546,8 +551,6 @@ export default async function SchoolProfilePage({
                     value="Sports Facilities"
                   />
                 )}
-
-                {/* Swimming */}
                 {school.has_swimming_pool && (
                   <QuickFact
                     icon={<Waves className="size-5 text-sky-500" />}
@@ -555,8 +558,6 @@ export default async function SchoolProfilePage({
                     value="Available"
                   />
                 )}
-
-                {/* Arts */}
                 {school.has_arts_program && (
                   <QuickFact
                     icon={<Palette className="size-5 text-rose-500" />}
@@ -564,8 +565,6 @@ export default async function SchoolProfilePage({
                     value="Available"
                   />
                 )}
-
-                {/* After School */}
                 {school.has_after_school && (
                   <QuickFact
                     icon={<Clock className="size-5 text-amber-600" />}
@@ -573,8 +572,6 @@ export default async function SchoolProfilePage({
                     value="Programs Available"
                   />
                 )}
-
-                {/* Students */}
                 {school.total_students != null && (
                   <QuickFact
                     icon={<Users className="size-5 text-teal-600" />}
@@ -583,14 +580,14 @@ export default async function SchoolProfilePage({
                   />
                 )}
               </div>
-            </section>
+            </AnimatedSection>
 
             {/* ----------------------------------------------------------
                 4. KHDA REPORT SECTION
                 ---------------------------------------------------------- */}
             {school.khda_reports && school.khda_reports.length > 0 && (
-              <section>
-                <h2 className="mb-4 text-lg font-semibold text-gray-900">
+              <AnimatedSection delay={0.15}>
+                <h2 className="mb-5 font-display text-xl font-semibold text-gray-900">
                   KHDA Inspection Reports
                 </h2>
                 <div className="space-y-4">
@@ -607,7 +604,8 @@ export default async function SchoolProfilePage({
                       return (
                         <div
                           key={report.id}
-                          className="rounded-xl border bg-white p-5 shadow-sm"
+                          className="rounded-2xl bg-white p-5"
+                          style={{ boxShadow: "var(--shadow-card)" }}
                         >
                           <div className="mb-2 flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -641,14 +639,12 @@ export default async function SchoolProfilePage({
                             )}
                           </div>
 
-                          {/* AI summary of the report */}
                           {report.ai_summary && (
                             <p className="mt-3 text-sm leading-relaxed text-gray-600">
                               {report.ai_summary}
                             </p>
                           )}
 
-                          {/* Key findings */}
                           {report.key_findings &&
                             typeof report.key_findings === "object" && (
                               <div className="mt-3">
@@ -679,18 +675,18 @@ export default async function SchoolProfilePage({
                       );
                     })}
                 </div>
-              </section>
+              </AnimatedSection>
             )}
 
             {/* ----------------------------------------------------------
                 5. FEE TABLE
                 ---------------------------------------------------------- */}
             {school.fee_history && school.fee_history.length > 0 && (
-              <section>
-                <h2 className="mb-4 text-lg font-semibold text-gray-900">
+              <AnimatedSection delay={0.2}>
+                <h2 className="mb-5 font-display text-xl font-semibold text-gray-900">
                   Fee Structure
                 </h2>
-                <div className="overflow-hidden rounded-xl border shadow-sm">
+                <div className="overflow-hidden rounded-2xl" style={{ boxShadow: "var(--shadow-card)" }}>
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-gray-50">
@@ -718,7 +714,7 @@ export default async function SchoolProfilePage({
                         .map((fee: FeeHistory) => (
                           <tr
                             key={fee.id}
-                            className="border-t border-gray-100 hover:bg-gray-50/50"
+                            className="border-t border-gray-100 bg-white hover:bg-gray-50/50"
                           >
                             <td className="px-4 py-3 font-medium text-gray-900">
                               {fee.grade ?? "All Grades"}
@@ -737,16 +733,16 @@ export default async function SchoolProfilePage({
                     </tbody>
                   </table>
                 </div>
-              </section>
+              </AnimatedSection>
             )}
 
             {/* ----------------------------------------------------------
                 6. REVIEWS SECTION
                 ---------------------------------------------------------- */}
             {school.reviews && school.reviews.length > 0 && (
-              <section>
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">
+              <AnimatedSection delay={0.25}>
+                <div className="mb-5 flex items-center justify-between">
+                  <h2 className="font-display text-xl font-semibold text-gray-900">
                     Reviews
                   </h2>
                   <p className="text-sm text-gray-500">
@@ -767,11 +763,11 @@ export default async function SchoolProfilePage({
                       return (
                         <div
                           key={review.id}
-                          className="rounded-xl border bg-white p-5 shadow-sm"
+                          className="rounded-2xl bg-white p-5"
+                          style={{ boxShadow: "var(--shadow-card)" }}
                         >
                           <div className="mb-2 flex items-start justify-between">
                             <div>
-                              {/* Author */}
                               <p className="font-semibold text-gray-900">
                                 {review.author ?? "Anonymous"}
                               </p>
@@ -782,7 +778,6 @@ export default async function SchoolProfilePage({
                               )}
                             </div>
                             <div className="flex items-center gap-2">
-                              {/* Sentiment badge */}
                               {review.sentiment && (
                                 <Badge
                                   className={`${sColor.bg} ${sColor.text} gap-1 border-0 text-[10px]`}
@@ -791,7 +786,6 @@ export default async function SchoolProfilePage({
                                   {review.sentiment}
                                 </Badge>
                               )}
-                              {/* Source */}
                               <Badge
                                 variant="outline"
                                 className="text-[10px] capitalize text-gray-500"
@@ -801,7 +795,6 @@ export default async function SchoolProfilePage({
                             </div>
                           </div>
 
-                          {/* Star rating */}
                           {review.rating != null && (
                             <div className="mb-2 flex items-center gap-1.5">
                               <div className="flex">
@@ -822,14 +815,12 @@ export default async function SchoolProfilePage({
                             </div>
                           )}
 
-                          {/* Review text */}
                           {review.text && (
                             <p className="text-sm leading-relaxed text-gray-600">
                               {review.text}
                             </p>
                           )}
 
-                          {/* Date */}
                           {(review.published_at ?? review.created_at) && (
                             <p className="mt-2 text-xs text-gray-400">
                               {new Date(
@@ -845,7 +836,7 @@ export default async function SchoolProfilePage({
                       );
                     })}
                 </div>
-              </section>
+              </AnimatedSection>
             )}
 
             {/* ----------------------------------------------------------
@@ -854,9 +845,9 @@ export default async function SchoolProfilePage({
             <Suspense
               fallback={
                 <section>
-                  <div className="mb-4 flex items-center gap-2">
+                  <div className="mb-5 flex items-center gap-2">
                     <Newspaper className="size-5 text-[#FF6B35]" />
-                    <h2 className="text-lg font-semibold text-gray-900">
+                    <h2 className="font-display text-xl font-semibold text-gray-900">
                       In the News
                     </h2>
                   </div>
@@ -864,7 +855,8 @@ export default async function SchoolProfilePage({
                     {[1, 2, 3].map((i) => (
                       <div
                         key={i}
-                        className="animate-pulse rounded-xl border bg-white p-4"
+                        className="animate-pulse rounded-2xl bg-white p-4"
+                        style={{ boxShadow: "var(--shadow-card)" }}
                       >
                         <div className="mb-2 h-4 w-3/4 rounded bg-gray-200" />
                         <div className="mb-1 h-3 w-full rounded bg-gray-100" />
@@ -882,48 +874,48 @@ export default async function SchoolProfilePage({
             {/* ----------------------------------------------------------
                 7. MAP SECTION
                 ---------------------------------------------------------- */}
-            <section>
-              <h2 className="mb-4 text-lg font-semibold text-gray-900">
+            <AnimatedSection delay={0.3}>
+              <h2 className="mb-5 font-display text-xl font-semibold text-gray-900">
                 Location
               </h2>
               {school.latitude && school.longitude ? (
-                <div className="flex h-64 flex-col items-center justify-center rounded-xl border bg-gray-50 shadow-sm">
-                  <MapPin className="mb-2 size-8 text-[#FF6B35]" />
-                  <p className="text-sm font-medium text-gray-700">
-                    {school.name}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {school.latitude.toFixed(6)}, {school.longitude.toFixed(6)}
-                  </p>
-                  {school.address && (
-                    <p className="mt-1 max-w-md text-center text-xs text-gray-400">
-                      {school.address}
-                    </p>
-                  )}
-                  <Link
-                    href={`https://www.google.com/maps/search/?api=1&query=${school.latitude},${school.longitude}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-3"
-                  >
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5"
+                <div className="space-y-3">
+                  <ProfileMap
+                    latitude={school.latitude}
+                    longitude={school.longitude}
+                    name={school.name}
+                    address={school.address}
+                  />
+                  <div className="flex items-center justify-between">
+                    {school.address && (
+                      <p className="text-sm text-gray-500">
+                        {school.address}
+                      </p>
+                    )}
+                    <Link
+                      href={`https://www.google.com/maps/search/?api=1&query=${school.latitude},${school.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      <ExternalLink className="size-3.5" />
-                      Open in Google Maps
-                    </Button>
-                  </Link>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                      >
+                        <ExternalLink className="size-3.5" />
+                        Open in Google Maps
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               ) : (
-                <div className="flex h-48 items-center justify-center rounded-xl border bg-gray-50">
+                <div className="flex h-48 items-center justify-center rounded-2xl bg-gray-50" style={{ boxShadow: "var(--shadow-card)" }}>
                   <p className="text-sm text-gray-400">
                     Location data not available
                   </p>
                 </div>
               )}
-            </section>
+            </AnimatedSection>
           </div>
 
           {/* ================================================================
@@ -934,28 +926,37 @@ export default async function SchoolProfilePage({
               {/* ----------------------------------------------------------
                   Quick Contact Card
                   ---------------------------------------------------------- */}
-              <div className="rounded-xl border bg-white p-5 shadow-sm">
+              <div
+                className="relative overflow-hidden rounded-2xl bg-white p-5"
+                style={{ boxShadow: "var(--shadow-card)" }}
+              >
+                {/* Gradient top stripe */}
+                <div
+                  className="absolute inset-x-0 top-0 h-1"
+                  style={{
+                    background: "linear-gradient(90deg, #FF6B35, #FBBF24)",
+                  }}
+                />
+
                 <h3 className="mb-4 text-base font-semibold text-gray-900">
                   Contact {school.name}
                 </h3>
 
                 <div className="space-y-3">
-                  {/* Phone */}
                   {school.phone && (
                     <Link
                       href={`tel:${school.phone}`}
-                      className="flex items-center gap-3 rounded-lg p-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                      className="flex items-center gap-3 rounded-xl p-2.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
                     >
                       <Phone className="size-4 flex-shrink-0 text-[#FF6B35]" />
                       <span>{school.phone}</span>
                     </Link>
                   )}
 
-                  {/* Email */}
                   {(school.email ?? school.admission_email) && (
                     <Link
                       href={`mailto:${school.admission_email ?? school.email}`}
-                      className="flex items-center gap-3 rounded-lg p-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                      className="flex items-center gap-3 rounded-xl p-2.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
                     >
                       <Mail className="size-4 flex-shrink-0 text-[#FF6B35]" />
                       <span className="truncate">
@@ -964,13 +965,12 @@ export default async function SchoolProfilePage({
                     </Link>
                   )}
 
-                  {/* Website */}
                   {school.website && (
                     <Link
                       href={school.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-3 rounded-lg p-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                      className="flex items-center gap-3 rounded-xl p-2.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
                     >
                       <Globe className="size-4 flex-shrink-0 text-[#FF6B35]" />
                       <span className="truncate">Visit Website</span>
@@ -978,13 +978,12 @@ export default async function SchoolProfilePage({
                     </Link>
                   )}
 
-                  {/* WhatsApp */}
                   {school.whatsapp && (
                     <Link
                       href={`https://wa.me/${school.whatsapp.replace(/\D/g, "")}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-3 rounded-lg p-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                      className="flex items-center gap-3 rounded-xl p-2.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
                     >
                       <Phone className="size-4 flex-shrink-0 text-green-600" />
                       <span>WhatsApp</span>
@@ -993,7 +992,6 @@ export default async function SchoolProfilePage({
                   )}
                 </div>
 
-                {/* KHDA inspection link */}
                 {school.khda_inspection_url && (
                   <Link
                     href={school.khda_inspection_url}
@@ -1016,39 +1014,25 @@ export default async function SchoolProfilePage({
               {/* ----------------------------------------------------------
                   Enquiry Form
                   ---------------------------------------------------------- */}
-              <div id="enquire">
+              <div
+                id="enquire"
+                className="relative overflow-hidden rounded-2xl"
+                style={{ boxShadow: "var(--shadow-card)" }}
+              >
+                {/* Purple gradient top stripe */}
+                <div
+                  className="absolute inset-x-0 top-0 h-1 z-10"
+                  style={{
+                    background: "linear-gradient(90deg, #6B21A8, #A855F7)",
+                  }}
+                />
                 <EnquiryForm school={{ id: school.id, name: school.name }} />
               </div>
 
               {/* ----------------------------------------------------------
-                  Similar Schools Placeholder
-                  ---------------------------------------------------------- */}
-              <div className="rounded-xl border bg-white p-5 shadow-sm">
-                <h3 className="mb-3 text-base font-semibold text-gray-900">
                   Similar Schools
-                </h3>
-                <p className="text-sm text-gray-500">
-                  Schools with similar curriculum, area, and fee range.
-                </p>
-                <div className="mt-4 space-y-3">
-                  {/* Placeholder skeleton cards */}
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="flex animate-pulse items-center gap-3 rounded-lg bg-gray-50 p-3"
-                    >
-                      <div className="size-10 flex-shrink-0 rounded-lg bg-gray-200" />
-                      <div className="flex-1 space-y-1.5">
-                        <div className="h-3 w-3/4 rounded bg-gray-200" />
-                        <div className="h-2.5 w-1/2 rounded bg-gray-200" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <p className="mt-3 text-center text-xs text-gray-400">
-                  Coming soon
-                </p>
-              </div>
+                  ---------------------------------------------------------- */}
+              <SimilarSchools slug={slug} />
             </div>
           </aside>
         </div>
@@ -1071,8 +1055,11 @@ function QuickFact({
   value: string;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border bg-white p-4 shadow-sm">
-      <div className="flex-shrink-0 rounded-lg bg-gray-50 p-2">{icon}</div>
+    <div
+      className="flex items-start gap-3 rounded-2xl bg-gradient-to-br from-gray-50 to-white p-4 transition-all hover:shadow-md"
+      style={{ boxShadow: "var(--shadow-card)" }}
+    >
+      <div className="flex-shrink-0 rounded-lg bg-white p-2 shadow-sm">{icon}</div>
       <div className="min-w-0">
         <p className="text-xs text-gray-500">{label}</p>
         <p className="truncate text-sm font-semibold text-gray-900">{value}</p>

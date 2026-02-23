@@ -1,15 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import db from "@/db";
 import { searchDubaiSchools } from "@/lib/exa";
-import type { ExaArticle } from "@/types";
+import { cosineSimilarity } from "@/lib/vectors";
+import { rateLimit, getClientIP } from "@/lib/rate-limit";
+import type { ExaArticle, User } from "@/types";
 
 const claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // POST /api/search — Natural language AI search
 export async function POST(request: NextRequest) {
+  // Rate limit: 20 searches per minute per IP
+  const ip = getClientIP(request);
+  const rl = rateLimit(`search:${ip}`, { limit: 20, windowSeconds: 60 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many searches. Please wait a moment and try again." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rl.resetIn) },
+      }
+    );
+  }
+
   const { query, session_id, filters } = await request.json();
 
   if (!query || query.trim().length < 3) {
@@ -59,8 +75,8 @@ Return ONLY valid JSON with these fields (all optional):
 
     // Step 3: Hybrid search — semantic + structured filters
     const filterClauses = ["s.is_active = true"];
-    const params: unknown[] = [JSON.stringify(queryEmbedding)];
-    let paramIdx = 2;
+    const params: unknown[] = [];
+    let paramIdx = 1;
 
     if (intent.type) {
       filterClauses.push(`s.type = $${paramIdx++}`);
@@ -100,6 +116,7 @@ Return ONLY valid JSON with these fields (all optional):
       params.push(filters.type);
     }
 
+    // Fetch filtered schools with their embeddings
     const searchResult = await db.query(
       `
       SELECT
@@ -107,27 +124,113 @@ Return ONLY valid JSON with these fields (all optional):
         s.fee_min, s.fee_max, s.google_rating, s.google_review_count,
         s.ai_summary, s.ai_strengths, s.has_sen_support, s.latitude, s.longitude,
         s.google_photos, s.is_featured,
-        1 - (se.embedding <=> $1::vector) as semantic_score
+        se.embedding
       FROM schools s
       JOIN school_embeddings se ON se.school_id = s.id
       WHERE ${filterClauses.join(" AND ")}
-      ORDER BY
-        s.is_featured DESC,
-        (1 - (se.embedding <=> $1::vector)) * 0.6 +
-        CASE s.khda_rating
-          WHEN 'Outstanding' THEN 0.4
-          WHEN 'Very Good' THEN 0.3
-          WHEN 'Good' THEN 0.2
-          ELSE 0.1
-        END DESC
-      LIMIT 15
     `,
       params
     );
 
-    // Step 3b: Exa fallback when pgvector returns few results
+    // Fetch user preferences for personalized ranking (non-blocking)
+    let userPrefs: Partial<User> | null = null;
+    let internalUserId: string | null = null;
+    try {
+      const { userId } = await auth();
+      if (userId) {
+        const userResult = await db.query(
+          `SELECT id, preferred_curricula, preferred_areas, budget_min, budget_max
+           FROM users WHERE clerk_id = $1`,
+          [userId]
+        );
+        if (userResult.rows[0]) {
+          internalUserId = userResult.rows[0].id;
+          const u = userResult.rows[0];
+          if (u.preferred_curricula || u.preferred_areas || u.budget_min || u.budget_max) {
+            userPrefs = u;
+          }
+        }
+      }
+    } catch {
+      // Auth check is optional — continue without preferences
+    }
+
+    // Compute cosine similarity and rank in application code
+    const khdaScore: Record<string, number> = {
+      Outstanding: 0.4,
+      "Very Good": 0.3,
+      Good: 0.2,
+    };
+
+    const scored = searchResult.rows.map(
+      (row: Record<string, unknown>) => {
+        const emb = row.embedding as number[];
+        const semantic = cosineSimilarity(queryEmbedding, emb);
+        const khda = khdaScore[row.khda_rating as string] ?? 0.1;
+
+        // Preference-based soft boosts (small so they don't override relevance)
+        let prefBoost = 0;
+        if (userPrefs) {
+          const schoolCurricula = (row.curriculum as string[]) ?? [];
+          const schoolArea = row.area as string;
+          const schoolFeeMin = row.fee_min as number | null;
+          const schoolFeeMax = row.fee_max as number | null;
+
+          // Curriculum match: +0.08 per matching curriculum
+          if (userPrefs.preferred_curricula?.length) {
+            const matches = schoolCurricula.filter((c) =>
+              userPrefs!.preferred_curricula!.includes(c)
+            ).length;
+            prefBoost += matches * 0.08;
+          }
+
+          // Area match: +0.1 if school is in a preferred area
+          if (userPrefs.preferred_areas?.length && schoolArea) {
+            if (userPrefs.preferred_areas.includes(schoolArea)) {
+              prefBoost += 0.1;
+            }
+          }
+
+          // Budget match: +0.06 if school fees overlap with user budget
+          if (userPrefs.budget_min || userPrefs.budget_max) {
+            const budgetMin = userPrefs.budget_min ?? 0;
+            const budgetMax = userPrefs.budget_max ?? Infinity;
+            if (
+              schoolFeeMin !== null &&
+              schoolFeeMax !== null &&
+              schoolFeeMin <= budgetMax &&
+              schoolFeeMax >= budgetMin
+            ) {
+              prefBoost += 0.06;
+            }
+          }
+        }
+
+        const hybridScore =
+          (row.is_featured ? 1000 : 0) + semantic * 0.6 + khda + prefBoost;
+        // Strip raw embedding from response
+        const school = { ...row };
+        delete school.embedding;
+        return { ...school, semantic_score: semantic, hybridScore };
+      }
+    );
+
+    scored.sort(
+      (a: { hybridScore: number }, b: { hybridScore: number }) =>
+        b.hybridScore - a.hybridScore
+    );
+
+    const topSchools = scored.slice(0, 15).map(
+      (s: Record<string, unknown>) => {
+        const out = { ...s };
+        delete out.hybridScore;
+        return out;
+      }
+    );
+
+    // Step 3b: Exa fallback when few results
     let webResults: ExaArticle[] | undefined;
-    if (searchResult.rows.length < 3) {
+    if (topSchools.length < 3) {
       try {
         const exaResult = await searchDubaiSchools(query);
         webResults = exaResult.results.map((r) => ({
@@ -145,7 +248,7 @@ Return ONLY valid JSON with these fields (all optional):
     }
 
     // Step 4: Generate AI explanation of results
-    const topResults = searchResult.rows.slice(0, 5);
+    const topResults = topSchools.slice(0, 5);
     let aiExplanation = "";
 
     if (topResults.length > 0) {
@@ -183,14 +286,15 @@ Write your explanation:`,
     await db
       .query(
         `
-      INSERT INTO search_logs (session_id, query, query_type, filters, results_count)
-      VALUES ($1, $2, 'natural_language', $3, $4)
+      INSERT INTO search_logs (user_id, session_id, query, query_type, filters, results_count)
+      VALUES ($1, $2, $3, 'natural_language', $4, $5)
     `,
         [
+          internalUserId,
           session_id || null,
           query,
           JSON.stringify(intent),
-          searchResult.rows.length,
+          topSchools.length,
         ]
       )
       .catch(() => {});
@@ -198,15 +302,16 @@ Write your explanation:`,
     return NextResponse.json({
       query,
       intent,
-      schools: searchResult.rows,
+      schools: topSchools,
       ai_explanation: aiExplanation,
-      total: searchResult.rows.length,
+      total: topSchools.length,
       ...(webResults && webResults.length > 0 ? { webResults } : {}),
     });
   } catch (error) {
     console.error("Search error:", error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Search failed" },
+      { error: "Search failed", detail: message },
       { status: 500 }
     );
   }

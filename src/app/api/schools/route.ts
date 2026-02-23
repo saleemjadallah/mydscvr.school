@@ -75,11 +75,40 @@ export async function GET(request: NextRequest) {
   try {
     const result = await db.query(query, params);
 
-    const countQuery = `
-      SELECT COUNT(*) FROM schools WHERE is_active = true
-      ${type ? `AND type = '${type}'` : ""}
-    `;
-    const countResult = await db.query(countQuery);
+    // Build count query with the same filters (minus LIMIT/OFFSET)
+    let countQuery = `SELECT COUNT(*) FROM schools s WHERE s.is_active = true`;
+    const countParams: unknown[] = [];
+    let countIdx = 1;
+
+    if (type) {
+      countQuery += ` AND s.type = $${countIdx++}`;
+      countParams.push(type);
+    }
+    if (area) {
+      countQuery += ` AND s.area ILIKE $${countIdx++}`;
+      countParams.push(`%${area}%`);
+    }
+    if (curriculum) {
+      countQuery += ` AND $${countIdx++} = ANY(s.curriculum)`;
+      countParams.push(curriculum);
+    }
+    if (rating) {
+      countQuery += ` AND s.khda_rating = $${countIdx++}`;
+      countParams.push(rating);
+    }
+    if (fee_min) {
+      countQuery += ` AND s.fee_max >= $${countIdx++}`;
+      countParams.push(parseInt(fee_min));
+    }
+    if (fee_max) {
+      countQuery += ` AND s.fee_min <= $${countIdx++}`;
+      countParams.push(parseInt(fee_max));
+    }
+    if (has_sen === "true") {
+      countQuery += ` AND s.has_sen_support = true`;
+    }
+
+    const countResult = await db.query(countQuery, countParams);
 
     const response = {
       schools: result.rows,

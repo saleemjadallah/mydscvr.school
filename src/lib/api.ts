@@ -101,7 +101,7 @@ export async function compareSchools(
 /*  School news & insights (Exa-powered)                               */
 /* ------------------------------------------------------------------ */
 
-import type { SchoolNewsResponse, SchoolInsightsResponse } from "@/types";
+import type { SchoolNewsResponse, SchoolInsightsResponse, User } from "@/types";
 
 export async function getSchoolNews(slug: string) {
   return fetcher<SchoolNewsResponse>(
@@ -113,4 +113,27 @@ export async function getSchoolInsights(slug: string) {
   return fetcher<SchoolInsightsResponse>(
     `/api/schools/${encodeURIComponent(slug)}/insights`
   );
+}
+
+/* ------------------------------------------------------------------ */
+/*  User profile & activity                                            */
+/* ------------------------------------------------------------------ */
+
+export async function getUserProfile() {
+  return fetcher<{ user: User }>("/api/user");
+}
+
+export async function updateUserProfile(data: Partial<User>) {
+  return fetcher<{ user: User }>("/api/user", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getUserActivity() {
+  return fetcher<{
+    saved_count: number;
+    enquiries: unknown[];
+    recent_searches: unknown[];
+  }>("/api/user/activity");
 }
