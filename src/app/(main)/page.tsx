@@ -239,13 +239,13 @@ export default function HomePage() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-40px" }}
-          className="mx-auto grid max-w-5xl grid-cols-2 gap-4 rounded-2xl bg-white p-6 shadow-xl sm:grid-cols-4 sm:p-8"
+          className="mx-auto grid max-w-5xl grid-cols-2 gap-4 rounded-2xl bg-white/80 backdrop-blur-xl border border-white/60 p-6 shadow-[0_8px_40px_rgba(0,0,0,0.08)] sm:grid-cols-4 sm:p-8"
         >
           {[
-            { label: 'Private Schools', value: liveStats.schools, suffix: '+', icon: GraduationCap },
-            { label: 'Nurseries', value: liveStats.nurseries, suffix: '+', icon: MapPin },
-            { label: 'KHDA Verified Ratings', value: 100, suffix: '%', icon: CheckCircle },
-            { label: 'AI Smart Matching', value: 24, suffix: '/7', icon: Brain },
+            { label: 'Private Schools', value: liveStats.schools, suffix: '+', icon: GraduationCap, accent: 'rgba(255,107,53,0.12)', accentBorder: 'rgba(255,107,53,0.2)' },
+            { label: 'Nurseries', value: liveStats.nurseries, suffix: '+', icon: MapPin, accent: 'rgba(168,85,247,0.12)', accentBorder: 'rgba(168,85,247,0.2)' },
+            { label: 'KHDA Verified Ratings', value: 100, suffix: '%', icon: CheckCircle, accent: 'rgba(16,185,129,0.12)', accentBorder: 'rgba(16,185,129,0.2)' },
+            { label: 'AI Smart Matching', value: 24, suffix: '/7', icon: Brain, accent: 'rgba(251,191,36,0.12)', accentBorder: 'rgba(251,191,36,0.2)' },
           ].map((stat) => (
             <motion.div
               key={stat.label}
@@ -253,12 +253,14 @@ export default function HomePage() {
               className="flex flex-col items-center gap-2.5 text-center"
             >
               <div
-                className="flex size-12 items-center justify-center rounded-xl"
+                className="relative flex size-14 items-center justify-center rounded-2xl backdrop-blur-sm"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(255,107,53,0.1), rgba(168,85,247,0.1))',
+                  background: `linear-gradient(135deg, ${stat.accent}, rgba(255,255,255,0.6))`,
+                  border: `1px solid ${stat.accentBorder}`,
+                  boxShadow: `0 4px 12px ${stat.accent}, inset 0 1px 1px rgba(255,255,255,0.5)`,
                 }}
               >
-                <stat.icon className="size-5 text-[#FF6B35]" />
+                <stat.icon className="size-6 text-[#FF6B35]" />
               </div>
               <span className="text-2xl font-bold text-gray-900">
                 <AnimatedCounter target={stat.value} suffix={stat.suffix} />
