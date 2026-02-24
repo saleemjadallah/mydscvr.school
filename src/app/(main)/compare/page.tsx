@@ -312,11 +312,11 @@ function ComparisonTable({ schools }: { schools: School[] }) {
           <span className="flex items-center justify-center gap-1 text-sm">
             <Star className="size-3.5 fill-amber-400 text-amber-400" />
             <span className="font-medium text-gray-700">
-              {s.google_rating.toFixed(1)}
+              {Number(s.google_rating).toFixed(1)}
             </span>
             {s.google_review_count != null && (
               <span className="text-gray-400">
-                ({s.google_review_count.toLocaleString()})
+                ({Number(s.google_review_count).toLocaleString()})
               </span>
             )}
           </span>

@@ -358,10 +358,10 @@ export default async function SchoolProfilePage({
               {school.google_rating != null && (
                 <Badge className="glass-dark border-white/10 gap-1 text-xs text-white/90">
                   <Star className="size-3 fill-amber-400 text-amber-400" />
-                  {school.google_rating.toFixed(1)}
+                  {Number(school.google_rating).toFixed(1)}
                   {school.google_review_count != null && (
                     <span className="text-white/60">
-                      ({school.google_review_count.toLocaleString()})
+                      ({Number(school.google_review_count).toLocaleString()})
                     </span>
                   )}
                 </Badge>

@@ -176,11 +176,11 @@ export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCard
             <div className="flex items-center gap-1 text-sm">
               <Star className="size-3.5 flex-shrink-0 fill-amber-400 text-amber-400" />
               <span className="font-medium text-gray-700">
-                {school.google_rating.toFixed(1)}
+                {Number(school.google_rating).toFixed(1)}
               </span>
               {school.google_review_count != null && (
                 <span className="text-gray-400">
-                  ({school.google_review_count.toLocaleString()})
+                  ({Number(school.google_review_count).toLocaleString()})
                 </span>
               )}
             </div>

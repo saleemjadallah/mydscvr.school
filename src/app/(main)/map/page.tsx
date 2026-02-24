@@ -429,7 +429,7 @@ export default function MapPage() {
           ${
             school.google_rating
               ? `<p style="margin:0 0 2px; font-size:12px; color:#555;">
-                   Google: <strong>${school.google_rating.toFixed(1)}</strong>/5
+                   Google: <strong>${Number(school.google_rating).toFixed(1)}</strong>/5
                  </p>`
               : ''
           }

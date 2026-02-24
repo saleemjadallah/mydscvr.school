@@ -136,7 +136,7 @@ export default function SimilarSchools({ slug }: { slug: string }) {
                   {school.google_rating != null && (
                     <span className="flex items-center gap-0.5">
                       <Star className="size-3 fill-amber-400 text-amber-400" />
-                      {school.google_rating.toFixed(1)}
+                      {Number(school.google_rating).toFixed(1)}
                     </span>
                   )}
                 </div>
