@@ -290,6 +290,66 @@ CREATE TABLE IF NOT EXISTS sponsorships (
 );
 
 -- ============================================
+-- PIPELINE V2 RUNS
+-- ============================================
+CREATE TABLE IF NOT EXISTS pipeline_v2_runs (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  job_name    TEXT NOT NULL,
+  status      TEXT NOT NULL DEFAULT 'running',
+  context     JSONB,
+  metrics     JSONB,
+  error_text  TEXT,
+  started_at  TIMESTAMP NOT NULL DEFAULT NOW(),
+  ended_at    TIMESTAMP
+);
+
+-- ============================================
+-- PIPELINE V2 SNAPSHOTS
+-- ============================================
+CREATE TABLE IF NOT EXISTS pipeline_v2_snapshots (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  snapshot_type TEXT NOT NULL,
+  source_name   TEXT NOT NULL,
+  is_valid      BOOLEAN NOT NULL DEFAULT false,
+  record_count  INTEGER NOT NULL DEFAULT 0,
+  payload       JSONB NOT NULL,
+  metrics       JSONB,
+  created_at    TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- ============================================
+-- PIPELINE V2 DLQ
+-- ============================================
+CREATE TABLE IF NOT EXISTS pipeline_v2_dlq (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  job_name      TEXT NOT NULL,
+  school_id     UUID,
+  payload       JSONB,
+  error_text    TEXT,
+  attempts      INTEGER NOT NULL DEFAULT 1,
+  next_retry_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  resolved_at   TIMESTAMP,
+  created_at    TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- ============================================
+-- PIPELINE V2 SCHOOL STATE
+-- ============================================
+CREATE TABLE IF NOT EXISTS pipeline_v2_school_state (
+  school_id            UUID PRIMARY KEY REFERENCES schools(id) ON DELETE CASCADE,
+  core_source          TEXT,
+  core_confidence      NUMERIC(4,3),
+  fee_source           TEXT,
+  fee_confidence       NUMERIC(4,3),
+  last_core_synced_at  TIMESTAMP,
+  last_fee_synced_at   TIMESTAMP,
+  last_detail_synced_at TIMESTAMP,
+  meta                 JSONB,
+  updated_at           TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- ============================================
 -- INDEXES
 -- ============================================
 CREATE INDEX IF NOT EXISTS idx_schools_area ON schools(area);
@@ -305,3 +365,7 @@ CREATE INDEX IF NOT EXISTS idx_search_logs_created ON search_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_schools_last_scraped ON schools(last_scraped_at);
 CREATE INDEX IF NOT EXISTS idx_schools_is_active ON schools(is_active);
 CREATE INDEX IF NOT EXISTS idx_reviews_sentiment ON reviews(sentiment);
+CREATE INDEX IF NOT EXISTS idx_pipeline_v2_runs_job_started ON pipeline_v2_runs(job_name, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pipeline_v2_snapshots_type_created ON pipeline_v2_snapshots(snapshot_type, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pipeline_v2_dlq_job_next ON pipeline_v2_dlq(job_name, next_retry_at) WHERE resolved_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_fee_history_unique ON fee_history (school_id, year, grade, source);

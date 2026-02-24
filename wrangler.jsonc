@@ -4,10 +4,20 @@
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-02-17",
   "compatibility_flags": ["nodejs_compat"],
+  // Include modules that Turbopack loads via runtime external IDs (e.g. pg-<hash>)
+  "find_additional_modules": true,
+  "base_dir": ".open-next",
+  "rules": [
+    { "type": "ESModule", "globs": ["pg-*"], "fallthrough": true },
+    { "type": "ESModule", "globs": ["pg-bundled.mjs"], "fallthrough": true },
+    { "type": "ESModule", "globs": ["server-functions/default/**/*.mjs"] },
+    { "type": "CommonJS", "globs": ["server-functions/default/**/*.cjs"], "fallthrough": true },
+    { "type": "CommonJS", "globs": ["server-functions/default/**/*.js"] }
+  ],
 
   // Build step — runs OpenNext before wrangler deploy
   "build": {
-    "command": "npx opennextjs-cloudflare build"
+    "command": "node scripts/build-cloudflare.mjs"
   },
 
   "assets": {

@@ -46,10 +46,12 @@ export async function POST(request: NextRequest) {
 
   try {
     // Step 1: Extract structured intent from query using Claude Haiku
-    const intentResponse = await getClaude().messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 500,
-      system: `You extract structured search parameters from parent queries about Dubai schools and nurseries.
+    let intent: Record<string, unknown> = { summary: query };
+    try {
+      const intentResponse = await getClaude().messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 500,
+        system: `You extract structured search parameters from parent queries about Dubai schools and nurseries.
 Return ONLY valid JSON with these fields (all optional):
 {
   "type": "school" | "nursery" | null,
@@ -64,26 +66,31 @@ Return ONLY valid JSON with these fields (all optional):
   "features": string[] | null,
   "summary": string
 }`,
-      messages: [{ role: "user", content: query }],
-    });
+        messages: [{ role: "user", content: query }],
+      });
 
-    let intent: Record<string, unknown> = {};
-    try {
       intent = JSON.parse(
         intentResponse.content[0].type === "text"
           ? intentResponse.content[0].text
           : "{}"
       );
     } catch {
+      // Non-fatal: fallback to basic intent if LLM parsing/generation fails.
       intent = { summary: query };
     }
 
     // Step 2: Generate embedding for semantic search
-    const embeddingResponse = await getOpenAI().embeddings.create({
-      model: "text-embedding-3-small",
-      input: query,
-    });
-    const queryEmbedding = embeddingResponse.data[0].embedding;
+    let queryEmbedding: number[] | null = null;
+    try {
+      const embeddingResponse = await getOpenAI().embeddings.create({
+        model: "text-embedding-3-small",
+        input: query,
+      });
+      queryEmbedding = embeddingResponse.data[0].embedding;
+    } catch (embeddingError) {
+      // Non-fatal: continue with structured/filter ranking only.
+      console.error("Embedding fallback (non-fatal):", embeddingError);
+    }
 
     // Step 3: Hybrid search — semantic + structured filters
     const filterClauses = ["s.is_active = true"];
@@ -178,7 +185,7 @@ Return ONLY valid JSON with these fields (all optional):
       (rawRow: Record<string, unknown>) => {
         const row = sanitizeSchoolRecord(rawRow);
         const emb = row.embedding as number[];
-        const semantic = cosineSimilarity(queryEmbedding, emb);
+        const semantic = queryEmbedding ? cosineSimilarity(queryEmbedding, emb) : 0;
         const khda = khdaScore[row.khda_rating as string] ?? 0.1;
 
         // Preference-based soft boosts (small so they don't override relevance)
@@ -265,16 +272,17 @@ Return ONLY valid JSON with these fields (all optional):
     let aiExplanation = "";
 
     if (topResults.length > 0) {
-      const explanationResponse = await getClaude().messages.create({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 400,
-        system: `You are a helpful Dubai school advisor. Given a parent's search query and top matching schools,
+      try {
+        const explanationResponse = await getClaude().messages.create({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 400,
+          system: `You are a helpful Dubai school advisor. Given a parent's search query and top matching schools,
 write a brief 2-3 sentence explanation of why these schools match their needs.
 Be specific, warm, and honest. Mention school names. Don't be sycophantic.`,
-        messages: [
-          {
-            role: "user",
-            content: `Parent query: "${query}"
+          messages: [
+            {
+              role: "user",
+              content: `Parent query: "${query}"
 
 Top matches:
 ${topResults
@@ -285,14 +293,18 @@ ${topResults
   .join("\n")}
 
 Write your explanation:`,
-          },
-        ],
-      });
+            },
+          ],
+        });
 
-      aiExplanation =
-        explanationResponse.content[0].type === "text"
-          ? explanationResponse.content[0].text
-          : "";
+        aiExplanation =
+          explanationResponse.content[0].type === "text"
+            ? explanationResponse.content[0].text
+            : "";
+      } catch (explanationError) {
+        // Non-fatal: omit AI explanation if provider is unavailable.
+        console.error("AI explanation fallback (non-fatal):", explanationError);
+      }
     }
 
     // Log search for analytics
