@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { Search, Sparkles, MapPin, GraduationCap, CheckCircle, Brain, Quote } from 'lucide-react';
 import { staggerContainer, staggerItem, fadeInUp } from '@/lib/animations';
 import AnimatedCounter from '@/components/AnimatedCounter';
@@ -103,22 +104,28 @@ export default function HomePage() {
         className="relative min-h-[85vh] flex items-center overflow-hidden"
         style={{ background: 'var(--gradient-hero)' }}
       >
-        {/* Animated gradient orbs */}
+        {/* AI-generated backdrop image */}
+        <div className="pointer-events-none absolute inset-0">
+          <Image
+            src="/backdrops/hero-backdrop.webp"
+            alt=""
+            fill
+            className="object-cover opacity-60 mix-blend-screen"
+            priority
+          />
+        </div>
+
+        {/* Animated gradient orbs (layered on top of backdrop) */}
         <div className="pointer-events-none absolute inset-0">
           <motion.div
-            className="absolute -left-32 top-1/4 h-[500px] w-[500px] rounded-full bg-[#FF6B35]/15 blur-[120px]"
+            className="absolute -left-32 top-1/4 h-[500px] w-[500px] rounded-full bg-[#FF6B35]/10 blur-[120px]"
             animate={{ x: [0, 30, 0], y: [0, -20, 0] }}
             transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
           />
           <motion.div
-            className="absolute -right-32 top-1/3 h-[400px] w-[400px] rounded-full bg-[#A855F7]/10 blur-[120px]"
+            className="absolute -right-32 top-1/3 h-[400px] w-[400px] rounded-full bg-[#A855F7]/8 blur-[120px]"
             animate={{ x: [0, -25, 0], y: [0, 25, 0] }}
             transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          <motion.div
-            className="absolute bottom-0 left-1/3 h-[350px] w-[350px] rounded-full bg-[#FBBF24]/8 blur-[100px]"
-            animate={{ x: [0, 20, 0], y: [0, -30, 0] }}
-            transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
           />
         </div>
 
@@ -210,9 +217,23 @@ export default function HomePage() {
       </section>
 
       {/* ================================================================== */}
+      {/* TRANSITION CLOUDS (hero → light section)                           */}
+      {/* ================================================================== */}
+      <div className="relative -mt-1 h-[180px] sm:h-[240px] overflow-hidden">
+        <Image
+          src="/backdrops/transition-clouds.webp"
+          alt=""
+          fill
+          className="object-cover object-top opacity-70"
+        />
+        {/* Gradient fade from hero dark to white */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0A1628] via-transparent to-white" />
+      </div>
+
+      {/* ================================================================== */}
       {/* FLOATING STATS BAR                                                 */}
       {/* ================================================================== */}
-      <section className="relative z-10 -mt-12 px-4">
+      <section className="relative z-10 -mt-32 px-4">
         <motion.div
           variants={staggerContainer}
           initial="hidden"
@@ -254,10 +275,19 @@ export default function HomePage() {
       {/* BROWSE BY CURRICULUM                                               */}
       {/* ================================================================== */}
       <section
-        className="py-20 sm:py-24"
+        className="relative py-20 sm:py-24 overflow-hidden"
         style={{ background: 'var(--gradient-section-light)' }}
       >
-        <div className="mx-auto max-w-5xl px-4">
+        {/* Subtle watercolor accent backdrop */}
+        <div className="pointer-events-none absolute inset-0">
+          <Image
+            src="/backdrops/light-section-accent.webp"
+            alt=""
+            fill
+            className="object-cover opacity-40"
+          />
+        </div>
+        <div className="relative mx-auto max-w-5xl px-4">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -313,6 +343,16 @@ export default function HomePage() {
         className="relative overflow-hidden py-20 sm:py-24"
         style={{ background: 'var(--gradient-section-dark)' }}
       >
+        {/* AI-generated atmospheric backdrop */}
+        <div className="pointer-events-none absolute inset-0">
+          <Image
+            src="/backdrops/testimonials-backdrop.webp"
+            alt=""
+            fill
+            className="object-cover opacity-70 mix-blend-lighten"
+          />
+        </div>
+
         {/* Decorative orbs */}
         <div className="pointer-events-none absolute -left-32 top-0 h-64 w-64 rounded-full bg-[#FF6B35]/5 blur-[100px]" />
         <div className="pointer-events-none absolute -right-32 bottom-0 h-64 w-64 rounded-full bg-[#A855F7]/5 blur-[100px]" />
