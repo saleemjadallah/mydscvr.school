@@ -238,7 +238,7 @@ async function generateAIComparison(
   query?: string
 ): Promise<string> {
   const comparison = await getClaude().messages.create({
-    model: "claude-sonnet-4-5-20241022",
+    model: "claude-sonnet-4-5",
     max_tokens: 1500,
     system: `You are an expert Dubai school advisor. Compare the provided schools objectively and helpfully.
 Structure your response as:
