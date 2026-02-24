@@ -26,6 +26,7 @@ export interface School {
   khda_rating: KHDARating | null;
   khda_rating_year: number | null;
   khda_school_id: string | null;
+  khda_center_id: string | null;
   khda_inspection_url: string | null;
   khda_report_path: string | null;
 

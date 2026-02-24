@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS schools (
   khda_rating           TEXT,
   khda_rating_year      INTEGER,
   khda_school_id        TEXT,
+  khda_center_id        TEXT,
   khda_inspection_url   TEXT,
   khda_report_path      TEXT,
   founded_year          INTEGER,
