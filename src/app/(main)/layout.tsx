@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
@@ -47,6 +48,13 @@ function Header() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
+          <Image
+            src="/logo.webp"
+            alt="mydscvr.ai"
+            width={32}
+            height={32}
+            className="size-8"
+          />
           <span className="text-xl font-bold tracking-tight text-gradient-brand">
             mydscvr.ai
           </span>
@@ -155,7 +163,14 @@ function Header() {
               <SheetTitle className="sr-only">Navigation menu</SheetTitle>
               <div className="flex h-full flex-col">
                 {/* Mobile nav header */}
-                <div className="border-b px-6 py-5">
+                <div className="flex items-center gap-2 border-b px-6 py-5">
+                  <Image
+                    src="/logo.webp"
+                    alt="mydscvr.ai"
+                    width={28}
+                    height={28}
+                    className="size-7"
+                  />
                   <span className="text-lg font-bold text-gradient-brand">
                     mydscvr.ai
                   </span>
@@ -259,9 +274,18 @@ function Footer() {
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
           {/* Brand column */}
           <div className="col-span-2 sm:col-span-1">
-            <span className="text-xl font-bold text-gradient-brand">
-              mydscvr.ai
-            </span>
+            <div className="flex items-center gap-2">
+              <Image
+                src="/logo.webp"
+                alt="mydscvr.ai"
+                width={28}
+                height={28}
+                className="size-7 rounded"
+              />
+              <span className="text-xl font-bold text-gradient-brand">
+                mydscvr.ai
+              </span>
+            </div>
             <p className="mt-3 text-sm leading-relaxed text-gray-400">
               AI-powered school and nursery discovery for Dubai families.
             </p>
