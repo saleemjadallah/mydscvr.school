@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { streamComparison } from '@/lib/api';
 
 interface AIComparisonCardProps {
@@ -97,7 +98,37 @@ export default function AIComparisonCard({
         {/* Content */}
         {text ? (
           <div className="prose prose-sm max-w-none text-gray-700 prose-headings:text-gray-900 prose-strong:text-gray-900 prose-li:marker:text-purple-500">
-            <ReactMarkdown>{text}</ReactMarkdown>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                table: ({ children }) => (
+                  <div className="my-4 overflow-x-auto rounded-lg border border-gray-200">
+                    <table className="w-full border-collapse text-sm">{children}</table>
+                  </div>
+                ),
+                thead: ({ children }) => (
+                  <thead className="bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-600">
+                    {children}
+                  </thead>
+                ),
+                tbody: ({ children }) => (
+                  <tbody className="divide-y divide-gray-100">{children}</tbody>
+                ),
+                tr: ({ children }) => (
+                  <tr className="transition-colors hover:bg-gray-50/50">{children}</tr>
+                ),
+                th: ({ children }) => (
+                  <th className="border-b border-gray-200 px-3 py-2.5 text-left font-semibold text-gray-700">
+                    {children}
+                  </th>
+                ),
+                td: ({ children }) => (
+                  <td className="px-3 py-2.5 text-gray-600">{children}</td>
+                ),
+              }}
+            >
+              {text}
+            </ReactMarkdown>
           </div>
         ) : error ? (
           <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-center">
