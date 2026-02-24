@@ -35,7 +35,6 @@ import { Button } from "@/components/ui/button";
 import EnquiryForm from "@/components/EnquiryForm";
 import SchoolNews from "@/components/SchoolNews";
 import SimilarSchools from "@/components/SimilarSchools";
-import ProfileMap from "@/components/ProfileMap";
 import GooglePlaceEmbed from "@/components/GooglePlaceEmbed";
 import AnimatedSection from "@/components/AnimatedSection";
 import type { School, KHDAReport, FeeHistory, Review } from "@/types";
@@ -883,56 +882,45 @@ export default async function SchoolProfilePage({
               <h2 className="mb-5 font-display text-xl font-semibold text-gray-900">
                 Location
               </h2>
-              {school.latitude && school.longitude ? (
-                <div className="space-y-3">
-                  <ProfileMap
-                    latitude={school.latitude}
-                    longitude={school.longitude}
-                    name={school.name}
-                    address={school.address}
-                  />
-                  <div className="flex items-center justify-between">
-                    {school.address && (
-                      <p className="text-sm text-gray-500">
-                        {school.address}
-                      </p>
-                    )}
-                    <Link
-                      href={`https://www.google.com/maps/search/?api=1&query=${school.latitude},${school.longitude}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5"
-                      >
-                        <ExternalLink className="size-3.5" />
-                        Open in Google Maps
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex h-48 items-center justify-center rounded-2xl bg-gray-50" style={{ boxShadow: "var(--shadow-card)" }}>
-                  <p className="text-sm text-gray-400">
-                    Location data not available
-                  </p>
-                </div>
-              )}
+              <div className="space-y-3">
+                {/* Google Maps embed — primary map (works for all schools via name search fallback) */}
+                <GooglePlaceEmbed
+                  placeId={school.google_place_id}
+                  latitude={school.latitude}
+                  longitude={school.longitude}
+                  schoolName={school.name}
+                  area={school.area}
+                />
 
-              {/* Google Place embed — shows Google Business card with reviews, photos, directions */}
-              {school.google_place_id && (
-                <div className="mt-4">
-                  <p className="mb-2 text-sm font-medium text-gray-600">
-                    On Google Maps
-                  </p>
-                  <GooglePlaceEmbed
-                    placeId={school.google_place_id}
-                    schoolName={school.name}
-                  />
+                {/* Address + external link */}
+                <div className="flex items-center justify-between">
+                  {school.address && (
+                    <p className="text-sm text-gray-500">
+                      {school.address}
+                    </p>
+                  )}
+                  <Link
+                    href={
+                      school.google_place_id
+                        ? `https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${school.google_place_id}`
+                        : school.latitude && school.longitude
+                          ? `https://www.google.com/maps/search/?api=1&query=${school.latitude},${school.longitude}`
+                          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${school.name}, ${school.area ?? "Dubai"}, UAE`)}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                    >
+                      <ExternalLink className="size-3.5" />
+                      Open in Google Maps
+                    </Button>
+                  </Link>
                 </div>
-              )}
+              </div>
             </AnimatedSection>
           </div>
 
