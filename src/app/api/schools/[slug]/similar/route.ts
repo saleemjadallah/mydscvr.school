@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/db";
 import { cosineSimilarity } from "@/lib/vectors";
+import { sanitizeSchoolRecord } from "@/lib/school-data";
 
 // GET /api/schools/:slug/similar — AI-powered similar schools
 export async function GET(
@@ -38,7 +39,8 @@ export async function GET(
 
     // Compute similarity and rank
     const ranked = others.rows
-      .map((row: Record<string, unknown>) => {
+      .map((rawRow: Record<string, unknown>) => {
+        const row = sanitizeSchoolRecord(rawRow);
         const emb = row.embedding as number[];
         const similarity = cosineSimilarity(targetEmb, emb);
         const out = { ...row };

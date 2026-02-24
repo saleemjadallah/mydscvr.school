@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import db from "@/db";
 import { cache } from "@/lib/cache";
+import { sanitizeTextValue } from "@/lib/school-data";
 
 // GET /api/schools/areas — List distinct areas
 export async function GET() {
@@ -17,10 +18,11 @@ export async function GET() {
        ORDER BY count DESC, area ASC`
     );
 
-    const areas = result.rows.map((r: { area: string; count: string }) => ({
-      name: r.area,
-      count: parseInt(r.count),
-    }));
+    const areas = result.rows.flatMap((r: { area: string; count: string }) => {
+      const name = sanitizeTextValue(r.area);
+      if (!name) return [];
+      return [{ name, count: parseInt(r.count) }];
+    });
 
     await cache.set(cacheKey, areas, 3600);
     return NextResponse.json(areas);

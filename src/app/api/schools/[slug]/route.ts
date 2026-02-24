@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/db";
 import { cache } from "@/lib/cache";
+import { sanitizeSchoolRecord } from "@/lib/school-data";
 
 // GET /api/schools/:slug — Single school profile
 export async function GET(
@@ -34,8 +35,9 @@ export async function GET(
       return NextResponse.json({ error: "School not found" }, { status: 404 });
     }
 
-    await cache.set(cacheKey, result.rows[0], 600);
-    return NextResponse.json(result.rows[0]);
+    const school = sanitizeSchoolRecord(result.rows[0]);
+    await cache.set(cacheKey, school, 600);
+    return NextResponse.json(school);
   } catch (error) {
     console.error("School fetch error:", error);
     return NextResponse.json(

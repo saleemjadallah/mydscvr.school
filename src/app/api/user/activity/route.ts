@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import db from "@/db";
+import { sanitizeTextValue } from "@/lib/school-data";
 
 // GET /api/user/activity — Dashboard activity for current user
 export async function GET() {
@@ -52,10 +53,42 @@ export async function GET() {
       ),
     ]);
 
+    const sanitizedEnquiries = enquiries.rows.flatMap((row: Record<string, unknown>) => {
+      const schoolName = sanitizeTextValue(row.school_name);
+      if (!schoolName) return [];
+
+      const photos = Array.isArray(row.google_photos)
+        ? row.google_photos.filter(
+            (photo): photo is string =>
+              typeof photo === "string" && photo.trim().length > 0
+          )
+        : null;
+
+      return [
+        {
+          ...row,
+          school_name: schoolName,
+          school_area: sanitizeTextValue(row.school_area),
+          khda_rating: sanitizeTextValue(row.khda_rating),
+          child_grade: sanitizeTextValue(row.child_grade),
+          message: sanitizeTextValue(row.message),
+          google_photos: photos,
+        },
+      ];
+    });
+
+    const sanitizedSearches = recentSearches.rows.flatMap(
+      (row: Record<string, unknown>) => {
+        const query = sanitizeTextValue(row.query);
+        if (!query) return [];
+        return [{ ...row, query, query_type: sanitizeTextValue(row.query_type) }];
+      }
+    );
+
     return NextResponse.json({
       saved_count: parseInt(savedCount.rows[0].count),
-      enquiries: enquiries.rows,
-      recent_searches: recentSearches.rows,
+      enquiries: sanitizedEnquiries,
+      recent_searches: sanitizedSearches,
     });
   } catch (error) {
     console.error("User activity error:", error);

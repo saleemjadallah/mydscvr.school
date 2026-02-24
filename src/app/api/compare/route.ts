@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import db from "@/db";
 import { rateLimit, getClientIP } from "@/lib/rate-limit";
+import { sanitizeSchoolRecords } from "@/lib/school-data";
 
 let _claude: Anthropic | null = null;
 function getClaude() { return _claude ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); }
+
+function formatFeeRange(min: unknown, max: unknown): string {
+  const minFee = typeof min === "number" ? min : null;
+  const maxFee = typeof max === "number" ? max : null;
+  if (minFee !== null && maxFee !== null) return `AED ${minFee.toLocaleString()}-${maxFee.toLocaleString()}`;
+  if (minFee !== null) return `From AED ${minFee.toLocaleString()}`;
+  if (maxFee !== null) return `Up to AED ${maxFee.toLocaleString()}`;
+  return "Fees not published";
+}
 
 // POST /api/compare — AI-powered school comparison
 export async function POST(request: NextRequest) {
@@ -52,6 +62,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const sanitizedSchools = sanitizeSchoolRecords(schools.rows);
+
     const comparison = await getClaude().messages.create({
       model: "claude-sonnet-4-5-20251022",
       max_tokens: 1500,
@@ -67,7 +79,7 @@ Be honest, specific, and data-driven. Use the KHDA ratings and fee data provided
       messages: [
         {
           role: "user",
-          content: `${query ? `Parent's specific concern: ${query}\n\n` : ""}Compare these Dubai schools:\n\n${schools.rows
+          content: `${query ? `Parent's specific concern: ${query}\n\n` : ""}Compare these Dubai schools:\n\n${sanitizedSchools
             .map((s: Record<string, unknown>) =>
               JSON.stringify(
                 {
@@ -75,7 +87,7 @@ Be honest, specific, and data-driven. Use the KHDA ratings and fee data provided
                   area: s.area,
                   curriculum: s.curriculum,
                   khda_rating: s.khda_rating,
-                  fees_aed: `${(s.fee_min as number)?.toLocaleString()}-${(s.fee_max as number)?.toLocaleString()}`,
+                  fees_aed: formatFeeRange(s.fee_min, s.fee_max),
                   google_rating: s.google_rating,
                   has_sen: s.has_sen_support,
                   phases: s.phases,
@@ -91,7 +103,7 @@ Be honest, specific, and data-driven. Use the KHDA ratings and fee data provided
     });
 
     return NextResponse.json({
-      schools: schools.rows,
+      schools: sanitizedSchools,
       ai_comparison:
         comparison.content[0].type === "text"
           ? comparison.content[0].text

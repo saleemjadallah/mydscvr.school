@@ -2,9 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import db from "@/db";
 import { rateLimit, getClientIP } from "@/lib/rate-limit";
+import { sanitizeSchoolRecords } from "@/lib/school-data";
 
 let _claude: Anthropic | null = null;
 function getClaude() { return _claude ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); }
+
+function formatFeeRange(min: unknown, max: unknown): string {
+  const minFee = typeof min === "number" ? min : null;
+  const maxFee = typeof max === "number" ? max : null;
+  if (minFee !== null && maxFee !== null) {
+    return `AED ${minFee.toLocaleString()}-${maxFee.toLocaleString()}/yr`;
+  }
+  if (minFee !== null) {
+    return `From AED ${minFee.toLocaleString()}/yr`;
+  }
+  if (maxFee !== null) {
+    return `Up to AED ${maxFee.toLocaleString()}/yr`;
+  }
+  return "Fees not published";
+}
 
 // POST /api/search/chat — Conversational AI search (multi-turn)
 export async function POST(request: NextRequest) {
@@ -31,11 +47,14 @@ export async function POST(request: NextRequest) {
       ORDER BY khda_rating, google_rating DESC NULLS LAST
       LIMIT 50
     `);
+    const sanitizedContext = sanitizeSchoolRecords(schoolContext.rows).filter(
+      (s: Record<string, unknown>) => typeof s.name === "string" && s.name.length > 0
+    );
 
     const systemPrompt = `You are an expert Dubai school advisor for mydscvr.ai.
 You help expat and local families find the perfect school or nursery in Dubai.
 
-Current database includes ${schoolContext.rows.length} top-rated schools. Key facts:
+Current database includes ${sanitizedContext.length} top-rated schools. Key facts:
 - Dubai has 200+ private schools and 500+ nurseries
 - All schools are rated by KHDA: Outstanding, Very Good, Good, Acceptable, Weak
 - Fees range from ~AED 15,000/year (budget) to AED 130,000+/year (premium)
@@ -43,10 +62,10 @@ Current database includes ${schoolContext.rows.length} top-rated schools. Key fa
 - Key areas: JBR, Marina, Downtown, DIFC, Jumeirah, Mirdif, Arabian Ranches, Al Barsha
 
 Available schools:
-${schoolContext.rows
+${sanitizedContext
   .map(
     (s: Record<string, unknown>) =>
-      `- ${s.name} (${s.area}): KHDA ${s.khda_rating}, ${(s.curriculum as string[])?.join("/")}, AED ${(s.fee_min as number)?.toLocaleString()}-${(s.fee_max as number)?.toLocaleString()}/yr${s.has_sen_support ? ", SEN support" : ""}`
+      `- ${s.name} (${s.area}): KHDA ${s.khda_rating}, ${(s.curriculum as string[])?.join("/")}, ${formatFeeRange(s.fee_min, s.fee_max)}${s.has_sen_support ? ", SEN support" : ""}`
   )
   .join("\n")}
 

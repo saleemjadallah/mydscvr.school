@@ -37,7 +37,7 @@ import SchoolNews from "@/components/SchoolNews";
 import SimilarSchools from "@/components/SimilarSchools";
 import ProfileMap from "@/components/ProfileMap";
 import AnimatedSection from "@/components/AnimatedSection";
-import type { School, KHDARating, KHDAReport, FeeHistory, Review } from "@/types";
+import type { School, KHDAReport, FeeHistory, Review } from "@/types";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -167,23 +167,21 @@ export async function generateMetadata({
   const photos = resolvePhotos(school.google_photos);
   const ogImage = photos[0] ?? undefined;
   const description =
-    school.ai_summary ??
-    school.meta_description ??
-    `Discover ${school.name} in ${school.area ?? "Dubai"}. View fees, KHDA rating, reviews and more on mydscvr.ai.`;
+    school.ai_summary ?? school.meta_description ?? school.description ?? undefined;
 
   return {
     title: `${school.meta_title ?? school.name} | mydscvr.ai`,
-    description,
+    ...(description ? { description } : {}),
     openGraph: {
       title: `${school.name} | mydscvr.ai`,
-      description,
+      ...(description ? { description } : {}),
       type: "article",
       ...(ogImage ? { images: [{ url: ogImage, width: 1200, height: 630 }] } : {}),
     },
     twitter: {
       card: "summary_large_image",
       title: `${school.name} | mydscvr.ai`,
-      description,
+      ...(description ? { description } : {}),
       ...(ogImage ? { images: [ogImage] } : {}),
     },
   };
@@ -219,8 +217,9 @@ export default async function SchoolProfilePage({
     "@context": "https://schema.org",
     "@type": "School",
     name: school.name,
-    description:
-      school.ai_summary ?? school.meta_description ?? `${school.name} in Dubai`,
+    ...((school.ai_summary ?? school.meta_description ?? school.description)
+      ? { description: school.ai_summary ?? school.meta_description ?? school.description }
+      : {}),
     address: {
       "@type": "PostalAddress",
       streetAddress: school.address ?? undefined,
@@ -253,7 +252,12 @@ export default async function SchoolProfilePage({
       : {}),
     ...(school.fee_min || school.fee_max
       ? {
-          priceRange: `AED ${school.fee_min ? formatFee(school.fee_min) : "N/A"} - ${school.fee_max ? formatFee(school.fee_max) : "N/A"}`,
+          priceRange:
+            school.fee_min != null && school.fee_max != null
+              ? `AED ${formatFee(school.fee_min)} - ${formatFee(school.fee_max)}`
+              : school.fee_min != null
+                ? `From AED ${formatFee(school.fee_min)}`
+                : `Up to AED ${formatFee(school.fee_max!)}`,
         }
       : {}),
   };

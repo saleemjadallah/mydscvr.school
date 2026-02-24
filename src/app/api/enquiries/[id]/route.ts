@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/db";
+import { sanitizeTextValue } from "@/lib/school-data";
 
 // GET /api/enquiries/:id — Get enquiry status
 export async function GET(
@@ -22,7 +23,13 @@ export async function GET(
     if (!result.rows[0]) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    return NextResponse.json(result.rows[0]);
+    const row = result.rows[0];
+    return NextResponse.json({
+      ...row,
+      school_name: sanitizeTextValue(row.school_name) ?? row.school_name,
+      child_grade: sanitizeTextValue(row.child_grade),
+      message: sanitizeTextValue(row.message),
+    });
   } catch (error) {
     console.error("Enquiry fetch error:", error);
     return NextResponse.json(

@@ -6,12 +6,22 @@ import db from "@/db";
 import { searchDubaiSchools } from "@/lib/exa";
 import { cosineSimilarity } from "@/lib/vectors";
 import { rateLimit, getClientIP } from "@/lib/rate-limit";
+import { sanitizeSchoolRecord } from "@/lib/school-data";
 import type { ExaArticle, User } from "@/types";
 
 let _claude: Anthropic | null = null;
 let _openai: OpenAI | null = null;
 function getClaude() { return _claude ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); }
 function getOpenAI() { return _openai ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY }); }
+
+function formatFeeRange(min: unknown, max: unknown): string {
+  const minFee = typeof min === "number" ? min : null;
+  const maxFee = typeof max === "number" ? max : null;
+  if (minFee !== null && maxFee !== null) return `AED ${minFee.toLocaleString()}-${maxFee.toLocaleString()}/year`;
+  if (minFee !== null) return `From AED ${minFee.toLocaleString()}/year`;
+  if (maxFee !== null) return `Up to AED ${maxFee.toLocaleString()}/year`;
+  return "Fees not published";
+}
 
 // POST /api/search — Natural language AI search
 export async function POST(request: NextRequest) {
@@ -165,7 +175,8 @@ Return ONLY valid JSON with these fields (all optional):
     };
 
     const scored = searchResult.rows.map(
-      (row: Record<string, unknown>) => {
+      (rawRow: Record<string, unknown>) => {
+        const row = sanitizeSchoolRecord(rawRow);
         const emb = row.embedding as number[];
         const semantic = cosineSimilarity(queryEmbedding, emb);
         const khda = khdaScore[row.khda_rating as string] ?? 0.1;
@@ -269,7 +280,7 @@ Top matches:
 ${topResults
   .map(
     (s: Record<string, unknown>) =>
-      `- ${s.name} (${s.area}): KHDA ${s.khda_rating}, ${(s.curriculum as string[])?.join("/")}, AED ${(s.fee_min as number)?.toLocaleString()}-${(s.fee_max as number)?.toLocaleString()}/year`
+      `- ${s.name} (${s.area}): KHDA ${s.khda_rating}, ${(s.curriculum as string[])?.join("/")}, ${formatFeeRange(s.fee_min, s.fee_max)}`
   )
   .join("\n")}
 

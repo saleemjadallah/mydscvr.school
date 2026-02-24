@@ -364,21 +364,32 @@ function QuickAction({
 }
 
 function EnquiryCard({ enquiry }: { enquiry: DashboardEnquiry }) {
-  const heroPhoto =
-    enquiry.google_photos?.[0] ?? "/placeholder-school.jpg";
+  const heroPhoto = enquiry.google_photos?.[0] ?? null;
 
   return (
     <Link href={`/schools/${enquiry.school_slug}`}>
       <div className="flex items-center gap-4 rounded-xl border bg-white p-4 shadow-sm transition-all hover:shadow-md">
         {/* School image */}
         <div className="relative size-14 flex-shrink-0 overflow-hidden rounded-lg">
-          <Image
-            src={heroPhoto}
-            alt={enquiry.school_name}
-            fill
-            className="object-cover"
-            sizes="56px"
-          />
+          {heroPhoto ? (
+            <Image
+              src={heroPhoto}
+              alt={enquiry.school_name}
+              fill
+              className="object-cover"
+              sizes="56px"
+            />
+          ) : (
+            <div
+              className="flex size-full items-center justify-center"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(255,107,53,0.12), rgba(245,158,11,0.12))",
+              }}
+            >
+              <GraduationCap className="size-5 text-[#FF6B35]/70" />
+            </div>
+          )}
         </div>
 
         {/* Details */}

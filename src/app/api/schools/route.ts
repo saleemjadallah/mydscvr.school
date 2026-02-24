@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/db";
 import { cache } from "@/lib/cache";
+import { sanitizeSchoolRecords } from "@/lib/school-data";
 
 // GET /api/schools — List with filters
 export async function GET(request: NextRequest) {
@@ -111,7 +112,7 @@ export async function GET(request: NextRequest) {
     const countResult = await db.query(countQuery, countParams);
 
     const response = {
-      schools: result.rows,
+      schools: sanitizeSchoolRecords(result.rows),
       total: parseInt(countResult.rows[0].count),
       page: parseInt(page),
       limit: parseInt(limit),

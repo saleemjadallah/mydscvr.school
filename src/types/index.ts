@@ -40,6 +40,9 @@ export interface School {
   total_students: number | null;
   capacity: number | null;
 
+  // Content
+  description: string | null;
+
   // Contact
   website: string | null;
   phone: string | null;

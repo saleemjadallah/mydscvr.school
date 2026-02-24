@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import db from "@/db";
+import { sanitizeSchoolRecords } from "@/lib/school-data";
 
 // GET /api/saved-schools — List current user's saved schools
 export async function GET() {
@@ -29,7 +30,7 @@ export async function GET() {
       [internalUserId]
     );
 
-    return NextResponse.json({ schools: result.rows });
+    return NextResponse.json({ schools: sanitizeSchoolRecords(result.rows) });
   } catch (error) {
     console.error("Saved schools list error:", error);
     return NextResponse.json(
