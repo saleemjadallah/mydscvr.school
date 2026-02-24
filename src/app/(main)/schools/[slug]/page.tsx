@@ -36,6 +36,7 @@ import EnquiryForm from "@/components/EnquiryForm";
 import SchoolNews from "@/components/SchoolNews";
 import SimilarSchools from "@/components/SimilarSchools";
 import ProfileMap from "@/components/ProfileMap";
+import GooglePlaceEmbed from "@/components/GooglePlaceEmbed";
 import AnimatedSection from "@/components/AnimatedSection";
 import type { School, KHDAReport, FeeHistory, Review } from "@/types";
 
@@ -917,6 +918,19 @@ export default async function SchoolProfilePage({
                   <p className="text-sm text-gray-400">
                     Location data not available
                   </p>
+                </div>
+              )}
+
+              {/* Google Place embed — shows Google Business card with reviews, photos, directions */}
+              {school.google_place_id && (
+                <div className="mt-4">
+                  <p className="mb-2 text-sm font-medium text-gray-600">
+                    On Google Maps
+                  </p>
+                  <GooglePlaceEmbed
+                    placeId={school.google_place_id}
+                    schoolName={school.name}
+                  />
                 </div>
               )}
             </AnimatedSection>
