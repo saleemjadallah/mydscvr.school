@@ -278,3 +278,75 @@ export interface SchoolInsightsResponse {
   insights: ExaArticle[];
   fetchedAt: string;
 }
+
+// ============================================
+// COMPARE
+// ============================================
+
+/** Lean school object for comparison views (~30 fields, not 70+) */
+export interface CompareSchool {
+  id: string;
+  slug: string;
+  name: string;
+  type: "school" | "nursery";
+  area: string | null;
+  address: string | null;
+  curriculum: string[];
+  phases: string[];
+  gender: "boys" | "girls" | "mixed";
+  khda_rating: KHDARating | null;
+  khda_rating_year: number | null;
+  fee_min: number | null;
+  fee_max: number | null;
+  fee_currency: string;
+  google_rating: number | null;
+  google_review_count: number | null;
+  google_photos: string[] | null;
+  website: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  total_students: number | null;
+  has_sen_support: boolean;
+  has_transport: boolean;
+  has_boarding: boolean;
+  has_after_school: boolean;
+  has_sports_facilities: boolean;
+  has_swimming_pool: boolean;
+  has_arts_program: boolean;
+  ai_summary: string | null;
+  ai_strengths: string[] | null;
+  ai_considerations: string[] | null;
+  description: string | null;
+}
+
+export interface FeeHistoryEntry {
+  school_id: string;
+  year: number;
+  grade: string | null;
+  fee_aed: number;
+  source: string;
+}
+
+export interface KHDAReportSummary {
+  school_id: string;
+  year: number;
+  rating: string;
+  ai_summary: string | null;
+  key_findings: Record<string, unknown> | null;
+}
+
+export interface ReviewSummary {
+  total: number;
+  positive: number;
+  neutral: number;
+  negative: number;
+  avg_rating: number | null;
+}
+
+export interface CompareResponse {
+  schools: CompareSchool[];
+  ai_comparison: string | null;
+  fee_history: Record<string, FeeHistoryEntry[]>;
+  khda_reports: Record<string, KHDAReportSummary[]>;
+  review_summary: Record<string, ReviewSummary>;
+}

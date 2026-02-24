@@ -45,8 +45,9 @@ npm run cf-typegen # Generate Cloudflare env types
 
 Deployed to **Cloudflare Workers** (not Pages) via `@opennextjs/cloudflare`.
 
-- `wrangler.jsonc` — Worker config: name `mydscvr-ai`, routes for `mydscvr.ai` and `www.mydscvr.ai`
+- `wrangler.jsonc` — Worker config: name `mydscvr-ai`, routes for `mydscvr.ai/*` and `www.mydscvr.ai/*` (wildcard required for static asset serving)
 - `open-next.config.ts` — OpenNext Cloudflare adapter config
+- `scripts/build-cloudflare.mjs` — Custom build script that bundles `pg` with `pg-cloudflare` shim for Workers runtime (called by `wrangler deploy` via build command in wrangler.jsonc)
 - `.dev.vars` — Server-side secrets for local `wrangler dev`/`preview` (gitignored)
 - `NEXT_PUBLIC_*` vars are inlined at **build time** → must be in `.env.local` before deploying
 - Server-side vars are read at **runtime** → set via `wrangler secret put` on the Worker
@@ -77,57 +78,83 @@ Railway PostgreSQL does **not** have pgvector installed. Embeddings are stored a
 - **Claude Opus** (`claude-opus-4-6-20250205`): KHDA PDF parsing (pipeline only)
 - **OpenAI** (`text-embedding-3-small`): 1536-dim embeddings for semantic search
 - **Exa.ai** (`exa-js` web app, `exa-py` pipeline): neural web search for school news, insights, fee discovery, school discovery, and search fallback
-- **Firecrawl** (`firecrawl-py` pipeline): JSON extraction for school websites and KHDA detail page fallback
-- **Google Places API** (New): location, ratings, reviews, coordinates, photos
+- **Firecrawl** (`firecrawl-py` pipeline): JSON extraction for school websites and KHDA directory/detail page fallback
+- **Google Places API**: location, ratings, reviews, coordinates, photos
+- **Dubai Pulse open data** (pipeline): machine-readable CSV for core school roster + detail profiles
+- **KHDA OpenData API** (pipeline): per-grade fee data by `EducationCenterId`
+- **Playwright** (pipeline): browser fallback for fee pages when API/requests fail
 
-### Data pipeline (separate repo)
+### Data pipeline v2 (separate repo, deployed to Railway)
 
-The data pipeline lives in a **separate git repo** (`pipeline/`) deployed to Railway. It runs as a long-lived Python process with a `schedule` loop.
+The data pipeline lives in a **separate git repo** (`pipeline/`) deployed to **Railway** as a long-lived Python process with a `schedule` loop. v2 is reliability-first: adapter-based sources with quality gates, snapshot fallback, dead letter queues, circuit breakers, and source confidence scoring. Each track runs independently — failures in one step do not block the rest.
 
-#### Tool layering & data authority
+#### Source confidence & data authority
 
-| Data Need | Primary | Fallback | Authority |
-|-----------|---------|----------|-----------|
-| KHDA school list (~235) | `requests` + regex | Firecrawl JSON | Authoritative for Dubai schools |
-| KHDA detail pages | `requests` + BeautifulSoup | Firecrawl JSON | Authoritative for fees, ratings, identity |
-| School discovery (non-Dubai) | Exa neural search | — | Supplement only |
-| School website content | Firecrawl JSON extraction | — | Authoritative for description, languages, features |
-| Fees | KHDA detail page | Exa + Claude Haiku | KHDA > Exa (KHDA prevents Exa overwrite) |
-| Location/coords/reviews | Google Places API | — | Authoritative for geo + Google ratings |
-| News/insights | Exa (web app, real-time) | — | Not pipeline (served live from web app) |
-| Embeddings | OpenAI text-embedding-3-small | — | Rebuilt incrementally |
-| AI summaries + features | Claude Haiku | — | Last resort for description/features |
-| Review sentiment | Claude Haiku batch | — | Batch classified |
+Sources are ranked by confidence. Higher-confidence sources can overwrite lower-confidence data; lower-confidence sources only fill NULLs.
 
-All DB updates use `COALESCE` — existing good data is never overwritten with NULL. Feature flags are only set to `true`, never overridden back to `false`.
+| Source | Confidence | Purpose |
+|--------|-----------|---------|
+| `dubaipulse_csv` | 0.95 | Primary core roster (Dubai Pulse open data CSV) |
+| `khda_opendata_fees` | 0.95 | Primary fee data (KHDA OpenData API by center ID) |
+| `snapshot` | 0.90 | Last-known-good snapshot fallback |
+| `khda_directory_html` | 0.85 | Legacy KHDA directory HTML scrape |
+| `khda_detail_scrape` | 0.80 | Legacy KHDA detail page scrape (BS4) |
+| `khda_firecrawl` | 0.60 | Firecrawl JSON fallback |
+| `exa` | 0.55 | Exa.ai neural search (lowest confidence) |
 
-#### Nightly pipeline (02:00 UTC) — 8 steps
+All DB updates use `COALESCE` — existing good data is never overwritten with NULL.
 
-1. **KHDA directory sync** (`scrapers/khda_directory.py`) — Fetches the KHDA school directory page, regex-parses ~235 schools from the server-rendered HTML. Upserts into `schools` by slug. Falls back to Firecrawl if regex returns <100 schools.
-2. **KHDA detail page scrape** (`scrapers/khda_details.py`) — For schools with a KHDA detail URL stale >7 days: fetches with `requests` + BeautifulSoup to extract website, email, principal, founded year, wellbeing/inclusion ratings, fee tables, inspection report URLs. Falls back to Firecrawl. Inserts per-grade fees into `fee_history` (source `'khda'`) and updates `fee_min`/`fee_max`. 2s delay between requests.
-3. **Exa.ai school discovery** (`scrapers/exa_crawler.py`) — Runs 7 neural search queries (new openings, by curriculum, by emirate). Claude Haiku extracts school names from results. Dedups against existing schools by name + slug. Inserts new schools as `is_active=false`.
-4. **Deduplication + auto-activation** (`processors/deduplication.py`) — Matches inactive Exa schools against active KHDA schools in 3 passes: exact slug → fuzzy name (SequenceMatcher >= 0.85) → embedding cosine similarity (>= 0.92). Duplicates merged (enrich active, delete inactive). Remaining schools auto-activated if confirmed by Google Places (`google_place_id IS NOT NULL`).
-5. **Google Places enrichment** (`scrapers/google_places.py`) — For active schools without `google_place_id`: Text Search → Place Details → inserts reviews. Updates lat/lng, rating, review count, photos, phone, website, address. 0.5s delay.
-6. **School website scrape** (`scrapers/school_websites.py`) — For active schools with website but no description: Firecrawl JSON extraction for description, languages, feature flags (SEN, transport, boarding, after-school, sports, pool, arts), admission email. 3s delay.
-7. **Embedding generation** (`processors/embeddings.py`) — For active schools without embeddings: builds rich text (name, curriculum, area, rating, fees, phases, languages, features, description, summary, KHDA findings) → OpenAI `text-embedding-3-small` in batches of 100 → stored in `school_embeddings`.
-8. **AI summary + feature inference** (`processors/enrichment.py`) — For active schools without `ai_summary`: builds context from all available data → Claude Haiku generates summary, strengths, considerations, fallback description (if still NULL), and inferred feature flags.
+#### Nightly pipeline (02:00 UTC) — 10 steps
+
+1. **Core roster sync** (`v2/jobs/core_roster_sync.py`) — Ranked adapter chain: Dubai Pulse CSV → KHDA directory HTML → Firecrawl. First source passing quality gates (≥180 total, ≥150 with `khda_center_id`) wins. Persists last-known-good snapshot; falls back to snapshot if all live sources degrade. Upserts with source confidence semantics.
+2. **KHDA fee sync** (`v2/jobs/khda_fee_sync.py`) — Fetches per-grade fees via KHDA OpenData API keyed by `khda_center_id`. Falls back to detail page scrape, then bounded Exa fallback. DLQ with exponential backoff (max 8 attempts). Circuit breaker opens after 20 consecutive failures, deferring remaining schools to DLQ.
+3. **Detail profile sync** (`v2/jobs/detail_profile_sync.py`) — Enriches school profiles (website, email, phone, address, coordinates, founded year, rating, inspection report URL) from Dubai Pulse CSV matched by `khda_center_id`. Optional legacy KHDA detail-page scrape via `PIPELINE_V2_DETAIL_ENABLE_LEGACY_SCRAPE=true`.
+4. **Exa discovery** (`scrapers/exa_crawler.py`) — Neural search queries for new schools by curriculum and emirate. Inserts as `is_active=false`.
+5. **Deduplication** (`processors/deduplication.py`) — 3-pass matching: exact slug → fuzzy name (≥0.85) → embedding cosine similarity (≥0.92). Duplicates merged, remaining auto-activated if confirmed by Google Places.
+6. **Google enrichment** (`scrapers/google_places.py`) — Text Search → Place Details for schools without `google_place_id`. Updates lat/lng, rating, reviews, photos, phone, website, address.
+7. **Website scrape** (`scrapers/school_websites.py`) — Firecrawl JSON extraction for description, languages, feature flags, admission email.
+8. **AI summary generation** (`processors/enrichment.py`) — Claude Haiku generates summaries, strengths, considerations, fallback descriptions, and inferred feature flags.
+9. **Customer-facing sync** (`v2/jobs/customer_facing_sync.py`) — Backfills fee ranges from `fee_history`, syncs description↔ai_summary, strips template placeholders, sets `meta_description`, computes `is_verified` flag, and evaluates production readiness gates (fee/summary/Google/verified coverage thresholds).
+10. **Embedding generation** (`processors/embeddings.py`) — OpenAI `text-embedding-3-small` in batches of 100 → stored in `school_embeddings`.
 
 #### Weekly pipeline (Sunday 03:00 UTC) — 3 steps
 
-1. **Exa fee updates** — For active schools without KHDA-sourced fees in `fee_history`: Exa neural search for fees → Claude Haiku extracts structured fee data → inserts into `fee_history` (source `'exa'`) → updates `fee_min`/`fee_max`/`fee_structure`. 1s delay.
-2. **Review sentiment analysis** (`processors/sentiment.py`) — Batch-classifies reviews where `sentiment IS NULL` as positive/neutral/negative via Claude Haiku in batches of 20.
-3. **Google Places re-enrichment** — For schools with Google data stale >30 days: refreshes rating + review count via Place Details (no text search needed, uses existing `google_place_id`). Inserts new reviews. 0.5s delay.
+1. **Exa fee fallback** — For active schools without KHDA/OpenData fees: Exa neural search → structured extraction → `fee_history` (source `'exa'`).
+2. **Sentiment refresh** (`processors/sentiment.py`) — Batch-classifies reviews where `sentiment IS NULL` via Claude Haiku.
+3. **Google re-enrichment** — Refreshes rating + reviews for schools with Google data stale >30 days.
+
+#### Backfill scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/run_fee_backfill_v2.py` | One-shot fee backlog runner for schools missing KHDA fee coverage |
+| `scripts/run_content_backfill_v2.py` | Website scrape + AI summaries + customer sync backfill |
+| `scripts/run_google_backfill_v2.py` | Google Places backfill for schools without `google_place_id` |
+
+Requires `playwright install chromium` for browser fallback dependencies.
 
 #### Pipeline files
 
 | File | Purpose |
 |------|---------|
-| `main.py` | Scheduler: runs nightly on startup, then `schedule` loop |
-| `scrapers/khda_directory.py` | KHDA directory scraper (regex + Firecrawl fallback) |
-| `scrapers/khda_details.py` | KHDA detail page scraper (BS4 + Firecrawl fallback) |
-| `scrapers/khda_scraper.py` | KHDA PDF report parser (Claude Opus) |
+| `main.py` | v2 scheduler: runs nightly on startup, then `schedule` loop |
+| `v2/orchestrator.py` | Orchestrates nightly (10 steps) and weekly (3 steps) tracks |
+| `v2/config.py` | All v2 config knobs (quality gates, batch sizes, DLQ policy, readiness gates) |
+| `v2/db.py` | v2 DB helpers: job runs, snapshots, DLQ, school state, confidence tracking |
+| `v2/models.py` | Typed models: `CoreSchoolRecord`, `AdapterFetchResult` |
+| `v2/utils.py` | Normalization: slugify, rating, curricula, coordinates, website, school type |
+| `v2/adapters/dubaipulse_csv.py` | Primary adapter: Dubai Pulse open data CSV |
+| `v2/adapters/khda_directory_adapter.py` | Fallback adapter: KHDA directory HTML scrape |
+| `v2/adapters/firecrawl_directory_adapter.py` | Last-resort adapter: Firecrawl JSON |
+| `v2/adapters/khda_fee_api.py` | KHDA OpenData fee API client (requests + curl fallback) |
+| `v2/jobs/core_roster_sync.py` | Core roster sync with quality gates + snapshots |
+| `v2/jobs/khda_fee_sync.py` | Fee sync with DLQ + circuit breaker + Exa fallback |
+| `v2/jobs/detail_profile_sync.py` | Detail profile enrichment via Dubai Pulse CSV |
+| `v2/jobs/customer_facing_sync.py` | Customer-facing normalization + readiness gates |
+| `scrapers/khda_directory.py` | Legacy KHDA directory scraper (used by adapter) |
+| `scrapers/khda_details.py` | Legacy KHDA detail page scraper (BS4 + Firecrawl) |
 | `scrapers/google_places.py` | Google Places enrichment + re-enrichment |
-| `scrapers/exa_crawler.py` | Exa fee discovery + school discovery + fee_history |
+| `scrapers/exa_crawler.py` | Exa fee discovery + school discovery |
 | `scrapers/school_websites.py` | School website scraper (Firecrawl JSON) |
 | `processors/embeddings.py` | OpenAI embedding generation (batched) |
 | `processors/enrichment.py` | AI summaries + feature inference (Claude Haiku) |
@@ -136,18 +163,41 @@ All DB updates use `COALESCE` — existing good data is never overwritten with N
 
 #### Key DB tables fed by pipeline
 
-- `schools` — Core records (235+ KHDA, plus Exa-discovered). Columns include `founded_year`, `wellbeing_rating`, `inclusion_rating`, `principal_name`, `dsib_quality_indicators` (JSONB), and 7 boolean feature flags.
+- `schools` — Core records (235+ KHDA, plus Exa-discovered). Includes `khda_center_id` (key for fee/detail API lookups), `founded_year`, `wellbeing_rating`, `inclusion_rating`, `is_verified`, and 7 boolean feature flags.
 - `school_embeddings` — FLOAT8[] vectors for semantic search
-- `khda_reports` — Inspection year, rating, findings (JSONB), AI summary
-- `fee_history` — Per-grade per-year fees with source (`'khda'` or `'exa'`)
+- `fee_history` — Per-grade per-year fees with source (`'khda_opendata'`, `'khda'`, `'khda_detail_scrape'`, or `'exa'`) and unique index on `(school_id, year, grade, source)`
 - `reviews` — Google reviews with `sentiment` (positive/neutral/negative)
+- `pipeline_v2_runs` — Job execution tracking (name, status, metrics, timing)
+- `pipeline_v2_snapshots` — Last-known-good roster snapshots for degraded-mode fallback
+- `pipeline_v2_dlq` — Dead letter queue with exponential backoff retry
+- `pipeline_v2_school_state` — Per-school source provenance and confidence tracking
+
+#### v2 config knobs (environment variables)
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `PIPELINE_V2_MIN_CORE_TOTAL` | 180 | Minimum schools for roster quality gate |
+| `PIPELINE_V2_MIN_CORE_WITH_CENTER_ID` | 150 | Minimum schools with center ID for quality gate |
+| `KHDA_CORE_CSV_URL` | Dubai Pulse URL | Primary CSV source for core roster |
+| `KHDA_FEES_API_URL` | KHDA OpenData URL | Fee API endpoint |
+| `PIPELINE_V2_FEE_BATCH_SIZE` | 250 | Schools per nightly fee sync batch |
+| `PIPELINE_V2_FEE_STALE_DAYS` | 14 | Days before fee data is considered stale |
+| `PIPELINE_V2_DLQ_MAX_ATTEMPTS` | 8 | Max DLQ retry attempts before giving up |
+| `PIPELINE_V2_FEE_MAX_CONSECUTIVE_FAILURES` | 20 | Circuit breaker threshold |
+| `PIPELINE_V2_EXA_FEE_FALLBACK_LIMIT` | 25 | Max Exa fee fallback attempts per run |
+| `PIPELINE_V2_DETAIL_ENABLE_LEGACY_SCRAPE` | false | Enable legacy KHDA detail page scraping |
+| `PIPELINE_V2_CUSTOMER_MIN_FEE_COVERAGE` | 0.55 | Readiness gate: minimum fee coverage ratio |
+| `PIPELINE_V2_CUSTOMER_MIN_SUMMARY_COVERAGE` | 0.70 | Readiness gate: minimum summary coverage |
+| `PIPELINE_V2_CUSTOMER_MIN_GOOGLE_COVERAGE` | 0.60 | Readiness gate: minimum Google Places coverage |
+| `PIPELINE_V2_CUSTOMER_GATE_STRICT` | false | Fail pipeline step if gates not met |
+| `PIPELINE_V2_PLAYWRIGHT_ENABLED` | true | Enable Playwright browser fallback |
 
 #### Pipeline roadmap / action items
 
-- **ADEK scraper** — Add Abu Dhabi Department of Education and Knowledge directory scraper as an authoritative source for Abu Dhabi private schools (similar to KHDA scraper). Would replace Exa discovery as the primary source for Abu Dhabi schools.
+- **ADEK scraper** — Add Abu Dhabi ADEK directory scraper as an authoritative source for Abu Dhabi private schools (similar to KHDA/Dubai Pulse adapter). Would replace Exa discovery as the primary source for Abu Dhabi schools.
 - **MOE scraper** — Add Ministry of Education directory scraper for Sharjah, Ajman, RAK, Fujairah, UAQ private schools. Currently these emirates are only discovered via Exa (no authoritative inspection data).
-- **ADEK/MOE detail scrapers** — Equivalent of `khda_details.py` for other emirates' inspection/detail pages once directory scrapers exist.
-- **Nursery-specific pipeline** — KHDA also regulates Dubai nurseries separately. Add nursery directory scraper + detail page scraper to bring nurseries to the same data quality as schools.
+- **ADEK/MOE detail scrapers** — Equivalent detail profile adapters for other emirates once directory scrapers exist.
+- **Nursery-specific pipeline** — KHDA also regulates Dubai nurseries separately. Add nursery directory adapter to bring nurseries to the same data quality as schools.
 
 ## API Routes
 

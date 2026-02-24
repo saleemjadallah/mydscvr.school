@@ -87,14 +87,79 @@ export async function submitEnquiry(data: Record<string, unknown>) {
 /*  Compare schools                                                    */
 /* ------------------------------------------------------------------ */
 
+import type { CompareResponse } from "@/types";
+
 export async function compareSchools(
-  schoolIds: string[],
-  query?: string
+  options: { school_ids?: string[]; school_slugs?: string[]; query?: string }
 ) {
-  return fetcher("/api/compare", {
+  return fetcher<CompareResponse>("/api/compare", {
     method: "POST",
-    body: JSON.stringify({ schoolIds, query }),
+    body: JSON.stringify(options),
   });
+}
+
+/** SSE streaming helper for AI comparison text */
+export function streamComparison(
+  schoolIds: string[],
+  query?: string,
+  callbacks?: {
+    onText?: (delta: string) => void;
+    onDone?: () => void;
+    onError?: (message: string) => void;
+  }
+): AbortController {
+  const controller = new AbortController();
+  const params = new URLSearchParams({ schools: schoolIds.join(",") });
+  if (query) params.set("query", query);
+
+  (async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/compare/stream?${params}`, {
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        callbacks?.onError?.(
+          (body as { error?: string }).error ?? "Stream failed"
+        );
+        return;
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) return;
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+            if (event.type === "text") callbacks?.onText?.(event.text);
+            else if (event.type === "done") callbacks?.onDone?.();
+            else if (event.type === "error") callbacks?.onError?.(event.message);
+          } catch {
+            // skip malformed events
+          }
+        }
+      }
+    } catch (err: unknown) {
+      if ((err as Error).name !== "AbortError") {
+        callbacks?.onError?.((err as Error).message ?? "Stream failed");
+      }
+    }
+  })();
+
+  return controller;
 }
 
 /* ------------------------------------------------------------------ */
