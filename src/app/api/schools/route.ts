@@ -7,6 +7,7 @@ import { haversineDistance, formatDistanceLabel } from "@/lib/geo";
 // GET /api/schools — List with filters
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
+  const q = searchParams.get("q")?.trim() || "";
   const type = searchParams.get("type");
   const area = searchParams.get("area");
   const curriculum = searchParams.get("curriculum");
@@ -27,10 +28,29 @@ export async function GET(request: NextRequest) {
 
   const offset = (parseInt(page) - 1) * parseInt(limit);
 
-  let query = `
-    SELECT
+  // When text search is active, add a relevance score for sorting
+  const hasTextSearch = q.length >= 2;
+  const selectClause = hasTextSearch
+    ? `
+      s.*,
+      COUNT(e.id) as enquiry_count_30d,
+      CASE
+        WHEN s.name ILIKE $1 THEN 100
+        WHEN s.name ILIKE $2 THEN 80
+        WHEN s.name ILIKE $3 THEN 60
+        WHEN s.slug ILIKE $2 THEN 50
+        WHEN s.area ILIKE $2 THEN 30
+        WHEN array_to_string(s.curriculum, ' ') ILIKE $3 THEN 20
+        ELSE 10
+      END as search_relevance
+    `
+    : `
       s.*,
       COUNT(e.id) as enquiry_count_30d
+    `;
+
+  let query = `
+    SELECT ${selectClause}
     FROM schools s
     LEFT JOIN enquiries e ON e.school_id = s.id
       AND e.created_at > NOW() - INTERVAL '30 days'
@@ -38,6 +58,29 @@ export async function GET(request: NextRequest) {
   `;
   const params: unknown[] = [];
   let paramIdx = 1;
+
+  if (hasTextSearch) {
+    // $1 = exact name, $2 = starts with, $3 = contains
+    params.push(q, `${q}%`, `%${q}%`);
+    paramIdx = 4;
+
+    // Split query into words for multi-word matching (e.g. "dubai british" finds "Dubai British School")
+    const words = q.split(/\s+/).filter((w) => w.length >= 2);
+    if (words.length > 1) {
+      // Each word must appear somewhere in name, area, slug, or curriculum
+      const wordClauses = words.map((word) => {
+        const p = paramIdx++;
+        params.push(`%${word}%`);
+        return `(s.name ILIKE $${p} OR s.area ILIKE $${p} OR s.slug ILIKE $${p} OR array_to_string(s.curriculum, ' ') ILIKE $${p})`;
+      });
+      query += ` AND (
+        (s.name ILIKE $3 OR s.slug ILIKE $3 OR s.area ILIKE $3 OR array_to_string(s.curriculum, ' ') ILIKE $3)
+        OR (${wordClauses.join(" AND ")})
+      )`;
+    } else {
+      query += ` AND (s.name ILIKE $3 OR s.slug ILIKE $3 OR s.area ILIKE $3 OR array_to_string(s.curriculum, ' ') ILIKE $3)`;
+    }
+  }
 
   if (type) {
     query += ` AND s.type = $${paramIdx++}`;
@@ -73,7 +116,11 @@ export async function GET(request: NextRequest) {
     fee_desc: "s.fee_max DESC NULLS LAST",
     reviews: "s.google_review_count DESC NULLS LAST",
   };
-  query += ` GROUP BY s.id ORDER BY ${sortMap[sort] || sortMap.rating}`;
+  // When searching by text, sort by relevance first
+  const orderBy = hasTextSearch
+    ? `search_relevance DESC, s.google_rating DESC NULLS LAST`
+    : sortMap[sort] || sortMap.rating;
+  query += ` GROUP BY s.id ORDER BY ${orderBy}`;
   query += ` LIMIT $${paramIdx++} OFFSET $${paramIdx++}`;
   params.push(parseInt(limit), offset);
 
@@ -85,6 +132,25 @@ export async function GET(request: NextRequest) {
     const countParams: unknown[] = [];
     let countIdx = 1;
 
+    if (hasTextSearch) {
+      countParams.push(`%${q}%`);
+      const cqContains = `$${countIdx++}`;
+
+      const words = q.split(/\s+/).filter((w) => w.length >= 2);
+      if (words.length > 1) {
+        const wordClauses = words.map((word) => {
+          const p = countIdx++;
+          countParams.push(`%${word}%`);
+          return `(s.name ILIKE $${p} OR s.area ILIKE $${p} OR s.slug ILIKE $${p} OR array_to_string(s.curriculum, ' ') ILIKE $${p})`;
+        });
+        countQuery += ` AND (
+          (s.name ILIKE ${cqContains} OR s.slug ILIKE ${cqContains} OR s.area ILIKE ${cqContains} OR array_to_string(s.curriculum, ' ') ILIKE ${cqContains})
+          OR (${wordClauses.join(" AND ")})
+        )`;
+      } else {
+        countQuery += ` AND (s.name ILIKE ${cqContains} OR s.slug ILIKE ${cqContains} OR s.area ILIKE ${cqContains} OR array_to_string(s.curriculum, ' ') ILIKE ${cqContains})`;
+      }
+    }
     if (type) {
       countQuery += ` AND s.type = $${countIdx++}`;
       countParams.push(type);
@@ -115,7 +181,11 @@ export async function GET(request: NextRequest) {
 
     const countResult = await db.query(countQuery, countParams);
 
-    let schools = sanitizeSchoolRecords(result.rows);
+    let schools = sanitizeSchoolRecords(result.rows).map((s: Record<string, unknown>) => {
+      const out = { ...s };
+      delete out.search_relevance;
+      return out;
+    });
 
     // Compute distances if lat/lng provided
     const hasLocation = lat && lng && !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lng));
