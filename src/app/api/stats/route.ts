@@ -18,9 +18,12 @@ export async function GET() {
         WHERE is_active = true
       `),
       db.query(`
-        SELECT unnest(curriculum) as name, COUNT(*) as count
-        FROM schools
-        WHERE is_active = true
+        SELECT name, COUNT(*) as count
+        FROM (
+          SELECT unnest(curriculum) AS name
+          FROM schools
+          WHERE is_active = true
+        ) c
         GROUP BY name
         ORDER BY count DESC
         LIMIT 10
