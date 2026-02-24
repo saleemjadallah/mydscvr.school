@@ -17,10 +17,13 @@ interface MapSchool {
   khda_rating: KHDARating | null;
   fee_min: number | null;
   fee_max: number | null;
+  distance_km?: number;
+  distance_label?: string;
 }
 
 interface MapViewProps {
   schools: MapSchool[];
+  center?: { lat: number; lng: number; label?: string };
 }
 
 // ---------------------------------------------------------------------------
@@ -58,7 +61,7 @@ function buildFeeLabel(feeMin: number | null, feeMax: number | null): string {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function MapView({ schools }: MapViewProps) {
+export default function MapView({ schools, center }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -124,9 +127,16 @@ export default function MapView({ schools }: MapViewProps) {
                  </p>`
               : ""
           }
-          <p style="margin:0 0 6px; font-size:12px; color:#555;">
+          <p style="margin:0 0 2px; font-size:12px; color:#555;">
             ${buildFeeLabel(school.fee_min, school.fee_max)}
           </p>
+          ${
+            school.distance_label
+              ? `<p style="margin:0 0 4px; font-size:12px; color:#FF6B35; font-weight:500;">
+                   ${school.distance_label}
+                 </p>`
+              : ""
+          }
           <a
             href="/schools/${school.slug}"
             style="font-size:12px; color:#FF6B35; text-decoration:none; font-weight:500;"
@@ -149,13 +159,40 @@ export default function MapView({ schools }: MapViewProps) {
       bounds.extend([lng, lat]);
     });
 
+    // Add reference location marker if center prop provided
+    if (center) {
+      const refEl = document.createElement("div");
+      refEl.style.width = "20px";
+      refEl.style.height = "20px";
+      refEl.style.borderRadius = "50%";
+      refEl.style.backgroundColor = "#FF6B35";
+      refEl.style.border = "3px solid white";
+      refEl.style.boxShadow = "0 2px 6px rgba(0,0,0,0.3)";
+
+      const refPopup = new mapboxgl.Popup({ offset: 15, maxWidth: "200px" }).setHTML(
+        `<div style="font-family:system-ui,sans-serif; font-size:13px; font-weight:500; color:#FF6B35;">
+          ${center.label ?? "Search location"}
+        </div>`
+      );
+
+      const refMarker = new mapboxgl.Marker({ element: refEl })
+        .setLngLat([center.lng, center.lat])
+        .setPopup(refPopup)
+        .addTo(map);
+
+      markersRef.current.push(refMarker);
+      bounds.extend([center.lng, center.lat]);
+    }
+
     // Fit map to markers with padding
-    if (validSchools.length === 1) {
+    if (center) {
+      map.flyTo({ center: [center.lng, center.lat], zoom: 12 });
+    } else if (validSchools.length === 1) {
       map.flyTo({ center: [validSchools[0].longitude!, validSchools[0].latitude!], zoom: 14 });
     } else {
       map.fitBounds(bounds, { padding: 60, maxZoom: 14 });
     }
-  }, [schools]);
+  }, [schools, center]);
 
   return (
     <div

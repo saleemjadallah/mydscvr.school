@@ -219,7 +219,17 @@ export interface SearchIntent {
   gender: "mixed" | "boys" | "girls" | null;
   phases: string[] | null;
   features: string[] | null;
+  location_query: string | null;
+  near_me: boolean;
   summary: string;
+}
+
+export interface LocationContext {
+  type: "geocoded" | "user_location";
+  lat: number;
+  lng: number;
+  place_name?: string;
+  radius_km?: number;
 }
 
 export interface SearchResponse {
@@ -229,6 +239,7 @@ export interface SearchResponse {
   ai_explanation: string;
   total: number;
   webResults?: ExaArticle[];
+  location_context?: LocationContext;
 }
 
 export interface SchoolListResponse {
@@ -251,7 +262,7 @@ export interface SchoolFilters {
   has_sen?: string;
   page?: string;
   limit?: string;
-  sort?: "rating" | "fee_asc" | "fee_desc" | "reviews";
+  sort?: "rating" | "fee_asc" | "fee_desc" | "reviews" | "distance";
 }
 
 // ============================================

@@ -18,7 +18,7 @@ const EXAMPLE_QUERIES = [
   'Outstanding British school near JBR under AED 80k/year',
   'Nursery in Downtown with strong Arabic language program',
   'IB school with excellent SEN support, any area',
-  'Affordable Indian curriculum school, Mirdif area',
+  'Best schools near me',
 ];
 
 // Fallback values shown immediately, replaced once API responds

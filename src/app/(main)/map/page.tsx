@@ -10,7 +10,9 @@ import {
   ChevronDown,
   Loader2,
   MapPin,
+  Search as SearchIcon,
 } from 'lucide-react';
+import { haversineDistance, formatDistanceLabel } from '@/lib/geo';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { School, KHDARating } from '@/types';
@@ -331,6 +333,8 @@ export default function MapPage() {
   const [error, setError] = useState('');
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [showSearchArea, setShowSearchArea] = useState(false);
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -368,13 +372,19 @@ export default function MapPage() {
     });
 
     map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-    map.addControl(
-      new mapboxgl.GeolocateControl({
-        positionOptions: { enableHighAccuracy: true },
-        trackUserLocation: false,
-      }),
-      'top-right'
-    );
+    const geolocateCtrl = new mapboxgl.GeolocateControl({
+      positionOptions: { enableHighAccuracy: true },
+      trackUserLocation: false,
+    });
+    geolocateCtrl.on('geolocate', (e: GeolocationPosition) => {
+      setUserLocation({ lat: e.coords.latitude, lng: e.coords.longitude });
+    });
+    map.addControl(geolocateCtrl, 'top-right');
+
+    // Show "Search this area" on pan/zoom
+    map.on('moveend', () => {
+      setShowSearchArea(true);
+    });
 
     mapRef.current = map;
 
@@ -407,6 +417,13 @@ export default function MapPage() {
         (school.khda_rating && KHDA_MARKER_COLORS[school.khda_rating]) ||
         DEFAULT_MARKER_COLOR;
 
+      // Compute distance from user location if available
+      let distLabel = '';
+      if (userLocation) {
+        const dist = haversineDistance(userLocation.lat, userLocation.lng, lat, lng);
+        distLabel = formatDistanceLabel(dist);
+      }
+
       const popupHTML = `
         <div style="min-width:200px; font-family:system-ui,sans-serif;">
           <h4 style="margin:0 0 4px; font-size:14px; font-weight:600; color:#111;">
@@ -433,9 +450,16 @@ export default function MapPage() {
                  </p>`
               : ''
           }
-          <p style="margin:0 0 6px; font-size:12px; color:#555;">
+          <p style="margin:0 0 2px; font-size:12px; color:#555;">
             ${buildFeeLabel(school.fee_min, school.fee_max)}
           </p>
+          ${
+            distLabel
+              ? `<p style="margin:0 0 4px; font-size:12px; color:#FF6B35; font-weight:500;">
+                   ${distLabel}
+                 </p>`
+              : ''
+          }
           <a
             href="/schools/${school.slug}"
             style="font-size:12px; color:#FF6B35; text-decoration:none; font-weight:500;"
@@ -456,7 +480,7 @@ export default function MapPage() {
 
       markersRef.current.push(marker);
     });
-  }, [filteredSchools]);
+  }, [filteredSchools, userLocation]);
 
   const resetFilters = useCallback(() => {
     setFilters(DEFAULT_FILTERS);
@@ -523,6 +547,60 @@ export default function MapPage() {
           totalCount={allSchools.filter((s) => s.latitude != null && s.longitude != null).length}
         />
       </div>
+
+      {/* Search this area button */}
+      {showSearchArea && (
+        <div className="absolute top-4 left-1/2 z-10 -translate-x-1/2">
+          <button
+            type="button"
+            onClick={() => {
+              const map = mapRef.current;
+              if (!map) return;
+              const center = map.getCenter();
+              const bounds = map.getBounds();
+              if (!bounds) return;
+              // Approximate radius from bounds
+              const ne = bounds.getNorthEast();
+              const approxRadius = haversineDistance(center.lat, center.lng, ne.lat, ne.lng);
+
+              // Re-fetch schools with the map bounds
+              async function fetchInArea() {
+                try {
+                  setLoading(true);
+                  const params = new URLSearchParams({
+                    lat: String(center.lat),
+                    lng: String(center.lng),
+                    radius_km: String(Math.round(approxRadius)),
+                    limit: '200',
+                    sort: 'distance',
+                  });
+                  if (filters.type) params.set('type', filters.type);
+                  if (filters.curriculum) params.set('curriculum', filters.curriculum);
+                  if (filters.rating) params.set('rating', filters.rating);
+                  if (filters.feeMin) params.set('fee_min', filters.feeMin);
+                  if (filters.feeMax) params.set('fee_max', filters.feeMax);
+
+                  const res = await fetch(`/api/schools?${params.toString()}`);
+                  if (!res.ok) throw new Error('Failed to fetch');
+                  const data = await res.json();
+                  setAllSchools(data.schools ?? []);
+                } catch {
+                  // Keep existing schools on error
+                } finally {
+                  setLoading(false);
+                  setShowSearchArea(false);
+                }
+              }
+              fetchInArea();
+            }}
+            className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-lg transition-all hover:bg-gray-50"
+            style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.15)' }}
+          >
+            <SearchIcon className="size-4 text-[#FF6B35]" />
+            Search this area
+          </button>
+        </div>
+      )}
 
       {/* Mobile filter button */}
       <div className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 md:hidden">

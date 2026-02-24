@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Star, MapPin, BookOpen, Heart } from "lucide-react";
+import { Star, MapPin, BookOpen, Heart, Navigation } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import type { School } from "@/types";
@@ -60,7 +60,10 @@ interface SchoolCardProps {
     | "ai_summary"
     | "has_sen_support"
     | "is_featured"
-  >;
+  > & {
+    distance_km?: number;
+    distance_label?: string;
+  };
   isSaved?: boolean;
   onToggleSave?: (schoolId: string) => void;
 }
@@ -168,6 +171,14 @@ export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCard
             <div className="flex items-center gap-1 text-sm text-gray-500">
               <MapPin className="size-3.5 flex-shrink-0" />
               <span className="truncate">{school.area}</span>
+            </div>
+          )}
+
+          {/* Distance label */}
+          {school.distance_label && (
+            <div className="flex items-center gap-1 text-sm text-[#FF6B35] font-medium">
+              <Navigation className="size-3.5 flex-shrink-0" />
+              {school.distance_label}
             </div>
           )}
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/db";
 import { cache } from "@/lib/cache";
 import { sanitizeSchoolRecords } from "@/lib/school-data";
+import { haversineDistance, formatDistanceLabel } from "@/lib/geo";
 
 // GET /api/schools — List with filters
 export async function GET(request: NextRequest) {
@@ -16,6 +17,9 @@ export async function GET(request: NextRequest) {
   const page = searchParams.get("page") || "1";
   const limit = searchParams.get("limit") || "20";
   const sort = searchParams.get("sort") || "rating";
+  const lat = searchParams.get("lat");
+  const lng = searchParams.get("lng");
+  const radiusKm = searchParams.get("radius_km");
 
   const cacheKey = `schools:list:${searchParams.toString()}`;
   const cached = await cache.get(cacheKey);
@@ -111,14 +115,59 @@ export async function GET(request: NextRequest) {
 
     const countResult = await db.query(countQuery, countParams);
 
+    let schools = sanitizeSchoolRecords(result.rows);
+
+    // Compute distances if lat/lng provided
+    const hasLocation = lat && lng && !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lng));
+    if (hasLocation) {
+      const refLat = parseFloat(lat!);
+      const refLng = parseFloat(lng!);
+      const radiusLimit = radiusKm ? parseFloat(radiusKm) : null;
+
+      schools = schools.map((s: Record<string, unknown>) => {
+        if (s.latitude != null && s.longitude != null) {
+          const dist = haversineDistance(refLat, refLng, s.latitude as number, s.longitude as number);
+          return {
+            ...s,
+            distance_km: Math.round(dist * 10) / 10,
+            distance_label: formatDistanceLabel(dist),
+          };
+        }
+        return s;
+      });
+
+      // Filter by radius if specified
+      if (radiusLimit && radiusLimit > 0) {
+        schools = schools.filter(
+          (s: Record<string, unknown>) =>
+            s.distance_km == null || (s.distance_km as number) <= radiusLimit
+        );
+      }
+
+      // Sort by distance if requested
+      if (sort === "distance") {
+        schools.sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
+          const aDist = a.distance_km as number | undefined;
+          const bDist = b.distance_km as number | undefined;
+          if (aDist == null && bDist == null) return 0;
+          if (aDist == null) return 1;
+          if (bDist == null) return -1;
+          return aDist - bDist;
+        });
+      }
+    }
+
     const response = {
-      schools: sanitizeSchoolRecords(result.rows),
-      total: parseInt(countResult.rows[0].count),
+      schools,
+      total: hasLocation && radiusKm ? schools.length : parseInt(countResult.rows[0].count),
       page: parseInt(page),
       limit: parseInt(limit),
     };
 
-    await cache.set(cacheKey, response, 300);
+    // Only cache when no location params (location-based results are personal)
+    if (!hasLocation) {
+      await cache.set(cacheKey, response, 300);
+    }
     return NextResponse.json(response);
   } catch (error) {
     console.error("Schools list error:", error);

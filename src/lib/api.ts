@@ -44,11 +44,18 @@ function buildQueryString(params?: Record<string, unknown>): string {
 
 export async function searchSchools(
   query: string,
-  filters?: Record<string, unknown>
+  filters?: Record<string, unknown>,
+  location?: { lat: number; lng: number },
+  radius_km?: number
 ) {
   return fetcher("/api/search", {
     method: "POST",
-    body: JSON.stringify({ query, filters }),
+    body: JSON.stringify({
+      query,
+      filters,
+      ...(location ? { user_lat: location.lat, user_lng: location.lng } : {}),
+      ...(radius_km ? { radius_km } : {}),
+    }),
   });
 }
 

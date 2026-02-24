@@ -16,6 +16,8 @@ import {
   ChevronDown,
   ArrowUpDown,
   Loader2,
+  Navigation,
+  Locate,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,12 +30,15 @@ import {
 import SchoolCard from '@/components/SchoolCard';
 import MapView from '@/components/MapView';
 import { useSavedSchools } from '@/hooks/useSavedSchools';
+import { useUserLocation } from '@/hooks/useUserLocation';
+import { displayAreaName } from '@/lib/dubai-areas';
 import { staggerContainer, staggerItem } from '@/lib/animations';
 import type {
   School,
   SearchResponse,
   SchoolListResponse,
   KHDARating,
+  LocationContext,
 } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -67,14 +72,18 @@ const FEE_RANGES = [
   { label: 'AED 80,000+', min: '80000', max: '' },
 ];
 
-const SORT_OPTIONS = [
+const BASE_SORT_OPTIONS = [
   { value: 'rating', label: 'KHDA Rating' },
   { value: 'fee_asc', label: 'Fees: Low to High' },
   { value: 'fee_desc', label: 'Fees: High to Low' },
   { value: 'reviews', label: 'Most Reviewed' },
 ] as const;
 
-type SortOption = (typeof SORT_OPTIONS)[number]['value'];
+const DISTANCE_SORT_OPTION = { value: 'distance', label: 'Nearest First' } as const;
+
+type SortOption = 'rating' | 'fee_asc' | 'fee_desc' | 'reviews' | 'distance';
+
+const RADIUS_OPTIONS = [5, 10, 15, 20] as const;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -88,6 +97,7 @@ interface Filters {
   feeMax: string;
   hasSen: boolean;
   area: string;
+  radiusKm: number | '';
 }
 
 const DEFAULT_FILTERS: Filters = {
@@ -98,13 +108,19 @@ const DEFAULT_FILTERS: Filters = {
   feeMax: '',
   hasSen: false,
   area: '',
+  radiusKm: '',
 };
 
 // ---------------------------------------------------------------------------
 // Fetcher helpers
 // ---------------------------------------------------------------------------
 
-async function aiSearch(query: string, filters: Filters): Promise<SearchResponse> {
+async function aiSearch(
+  query: string,
+  filters: Filters,
+  location?: { lat: number; lng: number } | null,
+  radiusKm?: number | ''
+): Promise<SearchResponse> {
   const res = await fetch('/api/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -113,6 +129,8 @@ async function aiSearch(query: string, filters: Filters): Promise<SearchResponse
       filters: {
         ...(filters.type ? { type: filters.type } : {}),
       },
+      ...(location ? { user_lat: location.lat, user_lng: location.lng } : {}),
+      ...(radiusKm ? { radius_km: radiusKm } : {}),
     }),
   });
   if (!res.ok) throw new Error('Search failed');
@@ -122,7 +140,8 @@ async function aiSearch(query: string, filters: Filters): Promise<SearchResponse
 async function fetchSchools(
   filters: Filters,
   page: number,
-  sort: SortOption
+  sort: SortOption,
+  location?: { lat: number; lng: number } | null,
 ): Promise<SchoolListResponse> {
   const params = new URLSearchParams();
   if (filters.type) params.set('type', filters.type);
@@ -132,6 +151,11 @@ async function fetchSchools(
   if (filters.feeMax) params.set('fee_max', filters.feeMax);
   if (filters.hasSen) params.set('has_sen', 'true');
   if (filters.area) params.set('area', filters.area);
+  if (location) {
+    params.set('lat', String(location.lat));
+    params.set('lng', String(location.lng));
+  }
+  if (filters.radiusKm) params.set('radius_km', String(filters.radiusKm));
   params.set('page', String(page));
   params.set('limit', '20');
   params.set('sort', sort);
@@ -251,7 +275,7 @@ function SearchFilters({
             <option value="">All areas</option>
             {areas.map((a) => (
               <option key={a.name} value={a.name}>
-                {a.name} ({a.count})
+                {displayAreaName(a.name)} ({a.count})
               </option>
             ))}
           </select>
@@ -381,8 +405,15 @@ function SchoolsPageContent() {
   const [loadedSchools, setLoadedSchools] = useState<School[]>([]);
 
   const { isSaved, toggleSave } = useSavedSchools();
+  const { location: userLocation, loading: locationLoading, error: locationError, requestLocation, clearLocation } = useUserLocation();
 
   const isAISearch = queryParam.length > 0;
+  const hasLocationContext = userLocation !== null;
+
+  // Build sort options dynamically based on location context
+  const sortOptions = hasLocationContext
+    ? [...BASE_SORT_OPTIONS, DISTANCE_SORT_OPTION]
+    : BASE_SORT_OPTIONS;
 
   const handleFiltersChange = useCallback((newFilters: Filters) => {
     setFilters(newFilters);
@@ -405,18 +436,21 @@ function SchoolsPageContent() {
 
   // ---- React Query: AI search ----
   const aiQuery = useQuery<SearchResponse>({
-    queryKey: ['ai-search', queryParam, filters.type],
-    queryFn: () => aiSearch(queryParam, filters),
+    queryKey: ['ai-search', queryParam, filters.type, userLocation?.lat, userLocation?.lng, filters.radiusKm],
+    queryFn: () => aiSearch(queryParam, filters, userLocation, filters.radiusKm),
     enabled: isAISearch,
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });
 
+  // Location context from AI search response
+  const aiLocationContext: LocationContext | undefined = aiQuery.data?.location_context;
+
   // ---- React Query: filtered list ----
   const listQuery = useQuery<SchoolListResponse>({
-    queryKey: ['schools-list', filters, page, sort],
+    queryKey: ['schools-list', filters, page, sort, userLocation?.lat, userLocation?.lng],
     queryFn: async () => {
-      const data = await fetchSchools(filters, page, sort);
+      const data = await fetchSchools(filters, page, sort, userLocation);
       if (page === 1) {
         setLoadedSchools(data.schools);
       } else {
@@ -484,6 +518,37 @@ function SchoolsPageContent() {
               Search
             </button>
           </div>
+
+          {/* Near Me button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (hasLocationContext) {
+                clearLocation();
+                if (sort === 'distance') setSort('rating');
+                handleFiltersChange({ ...filters, radiusKm: '' });
+              } else {
+                requestLocation();
+              }
+            }}
+            disabled={locationLoading}
+            className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-medium transition-all ${
+              hasLocationContext
+                ? 'border-[#FF6B35] bg-[#FF6B35]/10 text-[#FF6B35]'
+                : 'border-gray-200 text-gray-600 hover:border-[#FF6B35]/40 hover:text-[#FF6B35]'
+            }`}
+          >
+            {locationLoading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : hasLocationContext ? (
+              <X className="size-4" />
+            ) : (
+              <Locate className="size-4" />
+            )}
+            <span className="hidden sm:inline">
+              {locationLoading ? 'Locating...' : hasLocationContext ? 'Near Me' : 'Near Me'}
+            </span>
+          </button>
 
           {/* View toggle + mobile filter */}
           <div className="flex items-center gap-2">
@@ -582,7 +647,7 @@ function SchoolsPageContent() {
                     onChange={(e) => handleSortChange(e.target.value as SortOption)}
                     className="appearance-none rounded-lg border border-gray-200 bg-white py-1.5 pl-2 pr-7 text-sm text-gray-700 focus:border-[#FF6B35] focus:outline-none focus:ring-1 focus:ring-[#FF6B35]"
                   >
-                    {SORT_OPTIONS.map((opt) => (
+                    {sortOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
                       </option>
@@ -617,6 +682,50 @@ function SchoolsPageContent() {
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Location context badge + radius filter */}
+          {(hasLocationContext || aiLocationContext) && (
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              {/* Context badge */}
+              <div className="flex items-center gap-1.5 rounded-lg bg-[#FF6B35]/10 px-3 py-1.5 text-sm font-medium text-[#FF6B35]">
+                <Navigation className="size-3.5" />
+                {aiLocationContext?.place_name
+                  ? `Showing results near ${aiLocationContext.place_name}`
+                  : 'Showing results near you'}
+              </div>
+
+              {/* Radius filter buttons */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-gray-500">Radius:</span>
+                {RADIUS_OPTIONS.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => {
+                      handleFiltersChange({
+                        ...filters,
+                        radiusKm: filters.radiusKm === r ? '' : r,
+                      });
+                    }}
+                    className={`rounded-md border px-2 py-1 text-xs font-medium transition-all ${
+                      filters.radiusKm === r
+                        ? 'border-[#FF6B35] bg-[#FF6B35]/10 text-[#FF6B35]'
+                        : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                    }`}
+                  >
+                    {r} km
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Location error */}
+          {locationError && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-700">
+              {locationError}
             </div>
           )}
 
@@ -829,7 +938,16 @@ function SchoolsPageContent() {
             viewMode === 'map' && (
               <div>
                 {schools.length > 0 ? (
-                  <MapView schools={schools} />
+                  <MapView
+                    schools={schools}
+                    center={
+                      aiLocationContext
+                        ? { lat: aiLocationContext.lat, lng: aiLocationContext.lng, label: aiLocationContext.place_name }
+                        : userLocation
+                          ? { lat: userLocation.lat, lng: userLocation.lng, label: 'Your location' }
+                          : undefined
+                    }
+                  />
                 ) : (
                   <div className="flex h-[500px] items-center justify-center rounded-2xl bg-white" style={{ boxShadow: 'var(--shadow-card)' }}>
                     <div className="text-center">

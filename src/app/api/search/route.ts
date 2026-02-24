@@ -7,7 +7,9 @@ import { searchDubaiSchools } from "@/lib/exa";
 import { cosineSimilarity } from "@/lib/vectors";
 import { rateLimit, getClientIP } from "@/lib/rate-limit";
 import { sanitizeSchoolRecord } from "@/lib/school-data";
-import type { ExaArticle, User } from "@/types";
+import { haversineDistance, distanceScore, geocodePlace, isInDubai, formatDistanceLabel } from "@/lib/geo";
+import { resolveAreaAliases } from "@/lib/dubai-areas";
+import type { ExaArticle, User, LocationContext } from "@/types";
 
 let _claude: Anthropic | null = null;
 let _openai: OpenAI | null = null;
@@ -38,7 +40,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { query, session_id, filters } = await request.json();
+  const { query, session_id, filters, user_lat, user_lng, radius_km } = await request.json();
 
   if (!query || query.trim().length < 3) {
     return NextResponse.json({ error: "Query too short" }, { status: 400 });
@@ -64,8 +66,16 @@ Return ONLY valid JSON with these fields (all optional):
   "gender": "mixed" | "boys" | "girls" | null,
   "phases": string[] | null,
   "features": string[] | null,
+  "location_query": string | null,
+  "near_me": boolean,
   "summary": string
-}`,
+}
+
+Important distinctions:
+- "areas": Use for well-known Dubai area names that directly match KHDA database (e.g. "Mirdif", "Business Bay").
+- "location_query": Use for informal place names, landmarks, roads, or locations that need geocoding (e.g. "Al Qudra", "JBR", "near the mall", "Dubai Mall area"). This is for places that are NOT exact KHDA area names.
+- "near_me": Set to true ONLY if the user explicitly says "near me", "nearby", "close to me", "around me", or similar phrases indicating they want results near their current location.
+- A query can have both "areas" AND "location_query" if appropriate, but typically it's one or the other.`,
         messages: [{ role: "user", content: query }],
       });
 
@@ -121,8 +131,20 @@ Return ONLY valid JSON with these fields (all optional):
       params.push(intent.gender);
     }
     if (Array.isArray(intent.areas) && intent.areas.length) {
+      // Resolve aliases: "al barsha" → ["AL BARSHA FIRST", "AL BARSHA SECOND", ...]
+      const resolvedAreas = (intent.areas as string[]).flatMap(resolveAreaAliases);
       filterClauses.push(`s.area ILIKE ANY($${paramIdx++})`);
-      params.push((intent.areas as string[]).map((a) => `%${a}%`));
+      params.push(resolvedAreas.map((a) => `%${a}%`));
+    }
+
+    // Also resolve location_query through area aliases as a supplemental area filter
+    if (intent.location_query && !(Array.isArray(intent.areas) && intent.areas.length)) {
+      const locationAreas = resolveAreaAliases(intent.location_query as string);
+      // Only add area filter if aliases resolved to something different
+      if (locationAreas.length > 0 && locationAreas[0] !== intent.location_query) {
+        filterClauses.push(`s.area ILIKE ANY($${paramIdx++})`);
+        params.push(locationAreas.map((a) => `%${a}%`));
+      }
     }
     if (Array.isArray(intent.curriculum) && intent.curriculum.length) {
       filterClauses.push(`s.curriculum && $${paramIdx++}`);
@@ -172,6 +194,37 @@ Return ONLY valid JSON with these fields (all optional):
       }
     } catch {
       // Auth check is optional — continue without preferences
+    }
+
+    // Resolve location context for distance ranking
+    let referenceLocation: { lat: number; lng: number; source: string; placeName?: string } | null = null;
+    let locationContext: LocationContext | undefined;
+
+    if (intent.location_query) {
+      // Geocode the place name
+      const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+      if (mapboxToken) {
+        const geo = await geocodePlace(intent.location_query as string, mapboxToken);
+        if (geo) {
+          referenceLocation = { lat: geo.lat, lng: geo.lng, source: "geocoded", placeName: geo.placeName };
+          locationContext = { type: "geocoded", lat: geo.lat, lng: geo.lng, place_name: geo.placeName };
+        }
+      }
+    } else if (intent.near_me && typeof user_lat === "number" && typeof user_lng === "number") {
+      if (isInDubai(user_lat, user_lng)) {
+        referenceLocation = { lat: user_lat, lng: user_lng, source: "user_location" };
+        locationContext = { type: "user_location", lat: user_lat, lng: user_lng };
+      }
+    } else if (typeof user_lat === "number" && typeof user_lng === "number") {
+      // User passed coords (e.g. from Near Me button) even without "near me" in query
+      if (isInDubai(user_lat, user_lng)) {
+        referenceLocation = { lat: user_lat, lng: user_lng, source: "user_location" };
+        locationContext = { type: "user_location", lat: user_lat, lng: user_lng };
+      }
+    }
+
+    if (locationContext && typeof radius_km === "number") {
+      locationContext.radius_km = radius_km;
     }
 
     // Compute cosine similarity and rank in application code
@@ -226,21 +279,59 @@ Return ONLY valid JSON with these fields (all optional):
           }
         }
 
+        // Compute distance if we have a reference location and school has coords
+        let schoolDistanceKm: number | null = null;
+        let schoolDistScore = 0;
+        if (referenceLocation && row.latitude != null && row.longitude != null) {
+          schoolDistanceKm = haversineDistance(
+            referenceLocation.lat,
+            referenceLocation.lng,
+            row.latitude as number,
+            row.longitude as number
+          );
+          schoolDistScore = distanceScore(schoolDistanceKm);
+        }
+
+        // Ranking formula: adjust weights when location context is present
+        const semanticWeight = referenceLocation ? 0.40 : 0.6;
+        const distanceWeight = referenceLocation ? 0.35 : 0;
+
         const hybridScore =
-          (row.is_featured ? 1000 : 0) + semantic * 0.6 + khda + prefBoost;
+          (row.is_featured ? 1000 : 0) +
+          semantic * semanticWeight +
+          schoolDistScore * distanceWeight +
+          khda +
+          prefBoost;
+
         // Strip raw embedding from response
-        const school = { ...row };
+        const school: Record<string, unknown> = { ...row };
         delete school.embedding;
+
+        // Attach distance fields
+        if (schoolDistanceKm !== null) {
+          school.distance_km = Math.round(schoolDistanceKm * 10) / 10;
+          school.distance_label = formatDistanceLabel(schoolDistanceKm);
+        }
+
         return { ...school, semantic_score: semantic, hybridScore };
       }
     );
 
-    scored.sort(
+    // Apply radius filter if specified
+    let filteredScored = scored;
+    if (referenceLocation && typeof radius_km === "number" && radius_km > 0) {
+      filteredScored = scored.filter(
+        (s: Record<string, unknown>) =>
+          s.distance_km == null || (s.distance_km as number) <= radius_km
+      );
+    }
+
+    filteredScored.sort(
       (a: { hybridScore: number }, b: { hybridScore: number }) =>
         b.hybridScore - a.hybridScore
     );
 
-    const topSchools = scored.slice(0, 15).map(
+    const topSchools = filteredScored.slice(0, 15).map(
       (s: Record<string, unknown>) => {
         const out = { ...s };
         delete out.hybridScore;
@@ -273,12 +364,16 @@ Return ONLY valid JSON with these fields (all optional):
 
     if (topResults.length > 0) {
       try {
+        const distanceInfo = referenceLocation
+          ? `\nLocation context: Results are ranked by proximity to ${referenceLocation.placeName ?? "the user's location"}.`
+          : "";
+
         const explanationResponse = await getClaude().messages.create({
           model: "claude-haiku-4-5-20251001",
           max_tokens: 400,
           system: `You are a helpful Dubai school advisor. Given a parent's search query and top matching schools,
 write a brief 2-3 sentence explanation of why these schools match their needs.
-Be specific, warm, and honest. Mention school names. Don't be sycophantic.`,
+Be specific, warm, and honest. Mention school names. Don't be sycophantic.${distanceInfo ? " When location context is provided, mention the proximity to the searched location." : ""}`,
           messages: [
             {
               role: "user",
@@ -288,9 +383,9 @@ Top matches:
 ${topResults
   .map(
     (s: Record<string, unknown>) =>
-      `- ${s.name} (${s.area}): KHDA ${s.khda_rating}, ${(s.curriculum as string[])?.join("/")}, ${formatFeeRange(s.fee_min, s.fee_max)}`
+      `- ${s.name} (${s.area}): KHDA ${s.khda_rating}, ${(s.curriculum as string[])?.join("/")}, ${formatFeeRange(s.fee_min, s.fee_max)}${s.distance_label ? `, ${s.distance_label}` : ""}`
   )
-  .join("\n")}
+  .join("\n")}${distanceInfo}
 
 Write your explanation:`,
             },
@@ -331,6 +426,7 @@ Write your explanation:`,
       ai_explanation: aiExplanation,
       total: topSchools.length,
       ...(webResults && webResults.length > 0 ? { webResults } : {}),
+      ...(locationContext ? { location_context: locationContext } : {}),
     });
   } catch (error) {
     console.error("Search error:", error);
