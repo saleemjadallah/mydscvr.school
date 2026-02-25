@@ -170,6 +170,24 @@ export function streamComparison(
 }
 
 /* ------------------------------------------------------------------ */
+/*  Featured schools                                                   */
+/* ------------------------------------------------------------------ */
+
+import type { School, ExaArticle } from "@/types";
+
+export async function getFeaturedSchools() {
+  return fetcher<{ schools: School[] }>("/api/schools/featured");
+}
+
+/* ------------------------------------------------------------------ */
+/*  Homepage news (aggregated Dubai education)                         */
+/* ------------------------------------------------------------------ */
+
+export async function getHomepageNews() {
+  return fetcher<{ articles: ExaArticle[]; fetchedAt: string }>("/api/news");
+}
+
+/* ------------------------------------------------------------------ */
 /*  School news & insights (Exa-powered)                               */
 /* ------------------------------------------------------------------ */
 

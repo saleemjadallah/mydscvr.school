@@ -87,3 +87,16 @@ export async function searchDubaiSchools(query: string) {
     }
   );
 }
+
+export async function searchDubaiEducationNews(
+  query: string,
+  numResults = 8
+) {
+  return getExa().searchAndContents(query, {
+    type: "auto",
+    category: "news",
+    numResults,
+    startPublishedDate: daysAgoISO(30),
+    highlights: true,
+  });
+}

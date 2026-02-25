@@ -9,6 +9,8 @@ import Image from 'next/image';
 import { Search, Sparkles, MapPin, GraduationCap, CheckCircle, Brain, Quote } from 'lucide-react';
 import { staggerContainer, staggerItem, fadeInUp } from '@/lib/animations';
 import AnimatedCounter from '@/components/AnimatedCounter';
+import FeaturedSchools from '@/components/FeaturedSchools';
+import HomepageNews from '@/components/HomepageNews';
 
 // ---------------------------------------------------------------------------
 // Data
@@ -337,6 +339,16 @@ export default function HomePage() {
           </motion.div>
         </div>
       </section>
+
+      {/* ================================================================== */}
+      {/* FEATURED SCHOOLS (DARK)                                            */}
+      {/* ================================================================== */}
+      <FeaturedSchools />
+
+      {/* ================================================================== */}
+      {/* NEWS & INSIGHTS (LIGHT)                                            */}
+      {/* ================================================================== */}
+      <HomepageNews />
 
       {/* ================================================================== */}
       {/* SOCIAL PROOF / TRUST SECTION                                       */}
