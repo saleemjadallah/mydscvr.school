@@ -13,173 +13,288 @@ import {
 } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { Menu, Bell } from "lucide-react";
+import { motion, useScroll, AnimatePresence } from "framer-motion";
 import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Menu,
+  X,
+  Bell,
+  GraduationCap,
+  Baby,
+  GitCompareArrows,
+  MapPin,
+  LayoutDashboard,
+  Heart,
+  UserCircle,
+  ArrowRight,
+  Sparkles,
+} from "lucide-react";
 import ChatWidget from "@/components/ChatWidget";
 
 const NAV_LINKS = [
-  { href: "/schools", label: "Schools" },
-  { href: "/nurseries", label: "Nurseries" },
-  { href: "/compare", label: "Compare" },
-  { href: "/map", label: "Map" },
+  { href: "/schools", label: "Schools", icon: GraduationCap, description: "Browse all schools" },
+  { href: "/nurseries", label: "Nurseries", icon: Baby, description: "Early years education" },
+  { href: "/compare", label: "Compare", icon: GitCompareArrows, description: "Side-by-side analysis" },
+  { href: "/map", label: "Map", icon: MapPin, description: "Explore by location" },
 ] as const;
 
 const AUTH_NAV_LINKS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/saved", label: "Saved" },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/saved", label: "Saved", icon: Heart },
 ] as const;
 
 function Header() {
   const pathname = usePathname();
   const { scrollY } = useScroll();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     return scrollY.on("change", (v) => setIsScrolled(v > 20));
   }, [scrollY]);
 
-  const headerBg = isScrolled
-    ? "bg-white/90 backdrop-blur-xl shadow-sm border-b border-gray-200/50"
-    : "bg-transparent border-b border-transparent";
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   return (
-    <motion.header
-      className={`sticky top-0 z-50 transition-all duration-300 ${headerBg}`}
-    >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5">
-          <Image
-            src="/logos/Logo-Final-noBG.png"
-            alt="mydscvr.ai"
-            width={40}
-            height={40}
-            className="size-10"
-          />
-          <span className="text-xl font-bold tracking-tight text-gradient-brand">
-            mydscvr.ai
-          </span>
-        </Link>
+    <>
+      <motion.header
+        className="sticky top-0 z-50"
+        initial={false}
+      >
+        {/* Background layer — separate for smooth transitions */}
+        <div
+          className="absolute inset-0 transition-all duration-500 ease-out"
+          style={{
+            background: isScrolled
+              ? "rgba(255,255,255,0.82)"
+              : "transparent",
+            backdropFilter: isScrolled ? "blur(20px) saturate(1.8)" : "none",
+            WebkitBackdropFilter: isScrolled ? "blur(20px) saturate(1.8)" : "none",
+            borderBottom: isScrolled
+              ? "1px solid rgba(0,0,0,0.06)"
+              : "1px solid transparent",
+            boxShadow: isScrolled
+              ? "0 1px 3px rgba(0,0,0,0.04), 0 4px 24px rgba(0,0,0,0.03)"
+              : "none",
+          }}
+        />
 
-        {/* Desktop navigation */}
-        <nav className="hidden items-center gap-1 md:flex">
-          {NAV_LINKS.map(({ href, label }) => {
-            const isActive = pathname.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                className="relative rounded-lg px-3.5 py-2 text-sm font-medium transition-colors"
+        <div className="relative mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 sm:px-6 lg:px-8">
+          {/* Logo lockup */}
+          <Link href="/" className="group flex items-center gap-3">
+            <div className="relative">
+              <Image
+                src="/logos/Logo-Final-noBG.png"
+                alt="mydscvr.ai"
+                width={44}
+                height={44}
+                className="size-11 transition-transform duration-300 group-hover:scale-105"
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[22px] font-bold leading-none tracking-tight text-gradient-brand">
+                mydscvr.ai
+              </span>
+              <span
+                className={`mt-0.5 text-[10px] font-medium uppercase tracking-[0.15em] transition-colors duration-300 ${
+                  isScrolled
+                    ? "text-gray-400 group-hover:text-gray-500"
+                    : "text-white/50 group-hover:text-white/70"
+                }`}
               >
-                <span
-                  className={
-                    isActive
-                      ? "text-[#FF6B35]"
-                      : "text-gray-600 hover:text-gray-900"
-                  }
-                >
-                  {label}
-                </span>
-                {isActive && (
-                  <motion.div
-                    layoutId="nav-underline"
-                    className="absolute inset-x-1 -bottom-[1px] h-0.5 rounded-full"
-                    style={{
-                      background:
-                        "linear-gradient(90deg, #FF6B35, #FBBF24)",
-                    }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 400,
-                      damping: 30,
-                    }}
-                  />
-                )}
-              </Link>
-            );
-          })}
-        </nav>
+                School Finder
+              </span>
+            </div>
+          </Link>
 
-        {/* Auth nav + mobile menu */}
-        <div className="flex items-center gap-3">
-          <SignedOut>
-            <SignInButton mode="redirect">
-              <button
-                type="button"
-                className="rounded-full px-5 py-2 text-sm font-semibold text-gray-700 transition-all hover:text-gray-900 hover:bg-gray-100"
-              >
-                Sign In
-              </button>
-            </SignInButton>
-            <SignUpButton mode="redirect">
-              <button
-                type="button"
-                className="rounded-full px-5 py-2 text-sm font-semibold text-white transition-all hover:opacity-90 btn-glow"
-                style={{
-                  background:
-                    "linear-gradient(135deg, #FF6B35, #F59E0B)",
-                }}
-              >
-                Register
-              </button>
-            </SignUpButton>
-          </SignedOut>
-          <SignedIn>
-            <nav className="hidden items-center gap-1 md:flex">
-              {AUTH_NAV_LINKS.map(({ href, label }) => {
-                const isActive = pathname === href;
+          {/* Desktop navigation — centered pill nav */}
+          <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center md:flex">
+            <div
+              className="flex items-center gap-0.5 rounded-full p-1 transition-colors duration-300"
+              style={{
+                background: isScrolled
+                  ? "rgba(0,0,0,0.05)"
+                  : "rgba(255,255,255,0.08)",
+                border: isScrolled
+                  ? "1px solid rgba(0,0,0,0.04)"
+                  : "1px solid rgba(255,255,255,0.1)",
+              }}
+            >
+              {NAV_LINKS.map(({ href, label }) => {
+                const isActive = pathname.startsWith(href);
                 return (
                   <Link
                     key={href}
                     href={href}
-                    className="relative rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                    className="relative rounded-full px-4 py-2 text-[13px] font-semibold transition-colors"
                   >
+                    {isActive && (
+                      <motion.div
+                        layoutId="nav-pill"
+                        className="absolute inset-0 rounded-full"
+                        style={{
+                          background: isScrolled ? "#fff" : "rgba(255,255,255,0.15)",
+                          boxShadow: isScrolled
+                            ? "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)"
+                            : "0 1px 4px rgba(0,0,0,0.15)",
+                        }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 500,
+                          damping: 35,
+                        }}
+                      />
+                    )}
                     <span
-                      className={
+                      className={`relative z-10 transition-colors duration-200 ${
                         isActive
                           ? "text-[#FF6B35]"
-                          : "text-gray-600 hover:text-gray-900"
-                      }
+                          : isScrolled
+                            ? "text-gray-500 hover:text-gray-900"
+                            : "text-white/60 hover:text-white"
+                      }`}
                     >
                       {label}
                     </span>
                   </Link>
                 );
               })}
-            </nav>
-            <NotificationBell />
-            <UserButton
-              afterSignOutUrl="/"
-              appearance={{
-                elements: {
-                  avatarBox: "h-8 w-8",
-                },
-              }}
-            />
-          </SignedIn>
+            </div>
+          </nav>
 
-          {/* Mobile menu */}
-          <Sheet>
-            <SheetTrigger asChild>
-              <button
-                type="button"
-                className="inline-flex items-center justify-center rounded-lg p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 md:hidden"
-                aria-label="Open menu"
-              >
-                <Menu className="size-5" />
-              </button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-72 p-0">
-              <SheetTitle className="sr-only">Navigation menu</SheetTitle>
-              <div className="flex h-full flex-col">
-                {/* Mobile nav header */}
-                <div className="flex items-center gap-2.5 border-b px-6 py-5">
+          {/* Right side: auth + mobile toggle */}
+          <div className="flex items-center gap-2">
+            <SignedOut>
+              <SignInButton mode="redirect">
+                <button
+                  type="button"
+                  className={`hidden rounded-full px-4 py-2 text-[13px] font-semibold transition-all sm:inline-flex ${
+                    isScrolled
+                      ? "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                      : "text-white/70 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  Sign in
+                </button>
+              </SignInButton>
+              <SignUpButton mode="redirect">
+                <button
+                  type="button"
+                  className="group/cta relative hidden items-center gap-1.5 overflow-hidden rounded-full px-5 py-2.5 text-[13px] font-semibold text-white transition-all sm:inline-flex"
+                  style={{
+                    background: "linear-gradient(135deg, #FF6B35 0%, #FF8F5E 100%)",
+                  }}
+                >
+                  <span className="relative z-10">Get Started</span>
+                  <ArrowRight className="relative z-10 size-3.5 transition-transform duration-200 group-hover/cta:translate-x-0.5" />
+                  {/* Hover shimmer */}
+                  <div
+                    className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover/cta:opacity-100"
+                    style={{
+                      background: "linear-gradient(135deg, #FF8F5E 0%, #FBBF24 100%)",
+                    }}
+                  />
+                </button>
+              </SignUpButton>
+            </SignedOut>
+
+            <SignedIn>
+              <nav className="hidden items-center gap-0.5 md:flex">
+                {AUTH_NAV_LINKS.map(({ href, label, icon: Icon }) => {
+                  const isActive = pathname === href;
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-semibold transition-all ${
+                        isActive
+                          ? "bg-[#FF6B35]/10 text-[#FF6B35]"
+                          : isScrolled
+                            ? "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                            : "text-white/60 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <Icon className="size-3.5" />
+                      {label}
+                    </Link>
+                  );
+                })}
+              </nav>
+              <div
+                className="mx-1 hidden h-5 w-px md:block transition-colors duration-300"
+                style={{ background: isScrolled ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)" }}
+              />
+              <NotificationBell isScrolled={isScrolled} />
+              <UserButton
+                afterSignOutUrl="/"
+                appearance={{
+                  elements: {
+                    avatarBox: "h-8 w-8 ring-2 ring-gray-100 ring-offset-1",
+                  },
+                }}
+              />
+            </SignedIn>
+
+            {/* Mobile hamburger */}
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              className={`relative inline-flex size-10 items-center justify-center rounded-xl transition-colors md:hidden ${
+                isScrolled
+                  ? "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  : "text-white/80 hover:bg-white/10 hover:text-white"
+              }`}
+              aria-label="Open menu"
+            >
+              <Menu className="size-[22px]" strokeWidth={2} />
+            </button>
+          </div>
+        </div>
+      </motion.header>
+
+      {/* ================================================================ */}
+      {/* Mobile drawer — full custom overlay for premium feel              */}
+      {/* ================================================================ */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            {/* Scrim */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm"
+              onClick={() => setMobileOpen(false)}
+            />
+
+            {/* Drawer panel */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 400, damping: 40 }}
+              className="fixed inset-y-0 right-0 z-[70] flex w-[300px] flex-col bg-white shadow-2xl"
+            >
+              {/* Drawer header */}
+              <div className="flex items-center justify-between px-5 py-5">
+                <Link
+                  href="/"
+                  className="flex items-center gap-2.5"
+                  onClick={() => setMobileOpen(false)}
+                >
                   <Image
                     src="/logos/Logo-Final-noBG.png"
                     alt="mydscvr.ai"
@@ -190,104 +305,158 @@ function Header() {
                   <span className="text-lg font-bold text-gradient-brand">
                     mydscvr.ai
                   </span>
-                </div>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex size-9 items-center justify-center rounded-xl bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-700"
+                  aria-label="Close menu"
+                >
+                  <X className="size-4" strokeWidth={2.5} />
+                </button>
+              </div>
 
-                {/* Mobile nav links */}
-                <nav className="flex-1 px-4 py-4">
-                  <div className="space-y-1">
-                    {NAV_LINKS.map(({ href, label }) => {
-                      const isActive = pathname.startsWith(href);
-                      return (
-                        <Link
-                          key={href}
-                          href={href}
-                          className={`block rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+              {/* Divider with gradient */}
+              <div className="mx-5 h-px bg-gradient-to-r from-[#FF6B35]/20 via-[#FBBF24]/20 to-transparent" />
+
+              {/* Navigation links */}
+              <nav className="flex-1 overflow-y-auto px-4 py-4">
+                <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+                  Explore
+                </p>
+                <div className="space-y-0.5">
+                  {NAV_LINKS.map(({ href, label, icon: Icon, description }) => {
+                    const isActive = pathname.startsWith(href);
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={() => setMobileOpen(false)}
+                        className={`group flex items-center gap-3 rounded-xl px-3 py-3 transition-all ${
+                          isActive
+                            ? "bg-[#FF6B35]/8 text-[#FF6B35]"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        <div
+                          className={`flex size-9 items-center justify-center rounded-lg transition-colors ${
                             isActive
-                              ? "bg-[#FF6B35]/10 text-[#FF6B35]"
-                              : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                              ? "bg-[#FF6B35]/15 text-[#FF6B35]"
+                              : "bg-gray-100 text-gray-400 group-hover:bg-gray-200 group-hover:text-gray-600"
                           }`}
                         >
-                          {label}
-                        </Link>
-                      );
-                    })}
-                  </div>
+                          <Icon className="size-4" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold">{label}</span>
+                          <span className="text-[11px] text-gray-400">{description}</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
 
-                  {/* Authenticated mobile links */}
-                  <SignedIn>
-                    <div className="mt-4 border-t border-gray-100 pt-4">
-                      <p className="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                        Your Account
-                      </p>
-                      <div className="space-y-1">
-                        {AUTH_NAV_LINKS.map(({ href, label }) => {
-                          const isActive = pathname === href;
-                          return (
-                            <Link
-                              key={href}
-                              href={href}
-                              className={`block rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+                {/* Authenticated mobile links */}
+                <SignedIn>
+                  <div className="mt-5 pt-4">
+                    <div className="mx-3 mb-3 h-px bg-gray-100" />
+                    <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+                      Your Account
+                    </p>
+                    <div className="space-y-0.5">
+                      {AUTH_NAV_LINKS.map(({ href, label, icon: Icon }) => {
+                        const isActive = pathname === href;
+                        return (
+                          <Link
+                            key={href}
+                            href={href}
+                            onClick={() => setMobileOpen(false)}
+                            className={`group flex items-center gap-3 rounded-xl px-3 py-3 transition-all ${
+                              isActive
+                                ? "bg-[#FF6B35]/8 text-[#FF6B35]"
+                                : "text-gray-700 hover:bg-gray-50"
+                            }`}
+                          >
+                            <div
+                              className={`flex size-9 items-center justify-center rounded-lg transition-colors ${
                                 isActive
-                                  ? "bg-[#FF6B35]/10 text-[#FF6B35]"
-                                  : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                                  ? "bg-[#FF6B35]/15 text-[#FF6B35]"
+                                  : "bg-gray-100 text-gray-400 group-hover:bg-gray-200 group-hover:text-gray-600"
                               }`}
                             >
-                              {label}
-                            </Link>
-                          );
-                        })}
-                        <Link
-                          href="/profile"
-                          className={`block rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+                              <Icon className="size-4" />
+                            </div>
+                            <span className="text-sm font-semibold">{label}</span>
+                          </Link>
+                        );
+                      })}
+                      <Link
+                        href="/profile"
+                        onClick={() => setMobileOpen(false)}
+                        className={`group flex items-center gap-3 rounded-xl px-3 py-3 transition-all ${
+                          pathname === "/profile"
+                            ? "bg-[#FF6B35]/8 text-[#FF6B35]"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        <div
+                          className={`flex size-9 items-center justify-center rounded-lg transition-colors ${
                             pathname === "/profile"
-                              ? "bg-[#FF6B35]/10 text-[#FF6B35]"
-                              : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                              ? "bg-[#FF6B35]/15 text-[#FF6B35]"
+                              : "bg-gray-100 text-gray-400 group-hover:bg-gray-200 group-hover:text-gray-600"
                           }`}
                         >
-                          Profile & Preferences
-                        </Link>
-                      </div>
+                          <UserCircle className="size-4" />
+                        </div>
+                        <span className="text-sm font-semibold">Profile & Preferences</span>
+                      </Link>
                     </div>
-                  </SignedIn>
-                </nav>
+                  </div>
+                </SignedIn>
+              </nav>
 
-                {/* Mobile CTA */}
-                <div className="border-t px-6 py-5">
-                  <SignedOut>
-                    <div className="flex flex-col gap-3">
-                      <SignUpButton mode="redirect">
-                        <button
-                          type="button"
-                          className="w-full rounded-xl px-4 py-3 text-sm font-semibold text-white btn-glow"
+              {/* Mobile drawer footer */}
+              <div className="border-t border-gray-100 px-5 py-5">
+                <SignedOut>
+                  <div className="flex flex-col gap-2.5">
+                    <SignUpButton mode="redirect">
+                      <button
+                        type="button"
+                        className="group/cta relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl px-4 py-3.5 text-sm font-semibold text-white"
+                        style={{
+                          background: "linear-gradient(135deg, #FF6B35 0%, #FF8F5E 100%)",
+                        }}
+                      >
+                        <Sparkles className="size-4" />
+                        Get Started Free
+                        <div
+                          className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover/cta:opacity-100"
                           style={{
-                            background:
-                              "linear-gradient(135deg, #FF6B35, #F59E0B)",
+                            background: "linear-gradient(135deg, #FF8F5E 0%, #FBBF24 100%)",
                           }}
-                        >
-                          Register
-                        </button>
-                      </SignUpButton>
-                      <SignInButton mode="redirect">
-                        <button
-                          type="button"
-                          className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-                        >
-                          Sign In
-                        </button>
-                      </SignInButton>
-                    </div>
-                  </SignedOut>
-                </div>
+                        />
+                      </button>
+                    </SignUpButton>
+                    <SignInButton mode="redirect">
+                      <button
+                        type="button"
+                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
+                      >
+                        Sign in
+                      </button>
+                    </SignInButton>
+                  </div>
+                </SignedOut>
               </div>
-            </SheetContent>
-          </Sheet>
-        </div>
-      </div>
-    </motion.header>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
-function NotificationBell() {
+function NotificationBell({ isScrolled }: { isScrolled: boolean }) {
   const { isSignedIn } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -311,12 +480,16 @@ function NotificationBell() {
   return (
     <Link
       href="/dashboard"
-      className="relative rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+      className={`relative rounded-lg p-2 transition-colors ${
+        isScrolled
+          ? "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+          : "text-white/60 hover:bg-white/10 hover:text-white"
+      }`}
       title="Notifications"
     >
-      <Bell className="size-5" />
+      <Bell className="size-[18px]" />
       {unreadCount > 0 && (
-        <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-[#FF6B35] text-[9px] font-bold text-white">
+        <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-[#FF6B35] text-[9px] font-bold text-white ring-2 ring-white">
           {unreadCount > 9 ? "9+" : unreadCount}
         </span>
       )}
