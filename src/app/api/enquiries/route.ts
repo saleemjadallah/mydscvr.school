@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
     utm_source,
     utm_medium,
     utm_campaign,
+    enquiry_type,
   } = body;
 
   // Validate required fields
@@ -111,9 +112,11 @@ export async function POST(request: NextRequest) {
         parentName: parent_name,
         parentEmail: parent_email,
         parentPhone: parent_phone,
+        schoolName: school.rows[0].name,
         childGrade: child_grade,
         message,
         enquiryId,
+        enquiryType: enquiry_type,
       }).catch((err) => console.error("School email error:", err));
 
       await db.query(

@@ -296,6 +296,7 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
   const [submitted, setSubmitted] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   const {
     register,
@@ -337,6 +338,7 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
     const message = template.generate(ctx);
     setValue("message", message, { shouldDirty: true });
     setActiveTemplate(template.id);
+    setSelectedTemplate(template.id);
   };
 
   const visibleTemplates = MESSAGE_TEMPLATES.filter(
@@ -356,6 +358,7 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
         body: JSON.stringify({
           school_id: school.id,
           source: "profile",
+          enquiry_type: selectedTemplate || "general",
           parent_name: data.parent_name,
           parent_email: data.parent_email,
           parent_phone: data.parent_phone || null,
@@ -376,6 +379,7 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
 
       setSubmitted(true);
       setActiveTemplate(null);
+      setSelectedTemplate(null);
       reset();
     } catch (err) {
       toast.error(
