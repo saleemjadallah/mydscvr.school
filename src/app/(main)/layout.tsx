@@ -78,13 +78,13 @@ function Header() {
           className="absolute inset-0 transition-all duration-500 ease-out"
           style={{
             background: isScrolled
-              ? "rgba(255,255,255,0.82)"
-              : "transparent",
-            backdropFilter: isScrolled ? "blur(20px) saturate(1.8)" : "none",
-            WebkitBackdropFilter: isScrolled ? "blur(20px) saturate(1.8)" : "none",
+              ? "rgba(255,255,255,0.85)"
+              : "rgba(255,255,255,0.6)",
+            backdropFilter: isScrolled ? "blur(20px) saturate(1.8)" : "blur(12px) saturate(1.4)",
+            WebkitBackdropFilter: isScrolled ? "blur(20px) saturate(1.8)" : "blur(12px) saturate(1.4)",
             borderBottom: isScrolled
               ? "1px solid rgba(0,0,0,0.06)"
-              : "1px solid transparent",
+              : "1px solid rgba(0,0,0,0.03)",
             boxShadow: isScrolled
               ? "0 1px 3px rgba(0,0,0,0.04), 0 4px 24px rgba(0,0,0,0.03)"
               : "none",
@@ -107,13 +107,7 @@ function Header() {
               <span className="text-[22px] font-bold leading-none tracking-tight text-gradient-brand">
                 mydscvr.ai
               </span>
-              <span
-                className={`mt-0.5 text-[10px] font-medium uppercase tracking-[0.15em] transition-colors duration-300 ${
-                  isScrolled
-                    ? "text-gray-400 group-hover:text-gray-500"
-                    : "text-white/50 group-hover:text-white/70"
-                }`}
-              >
+              <span className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.15em] text-gray-400 transition-colors group-hover:text-gray-500">
                 School Finder
               </span>
             </div>
@@ -121,17 +115,7 @@ function Header() {
 
           {/* Desktop navigation — centered pill nav */}
           <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center md:flex">
-            <div
-              className="flex items-center gap-0.5 rounded-full p-1 transition-colors duration-300"
-              style={{
-                background: isScrolled
-                  ? "rgba(0,0,0,0.05)"
-                  : "rgba(255,255,255,0.08)",
-                border: isScrolled
-                  ? "1px solid rgba(0,0,0,0.04)"
-                  : "1px solid rgba(255,255,255,0.1)",
-              }}
-            >
+            <div className="flex items-center gap-0.5 rounded-full bg-gray-950/[0.04] p-1 ring-1 ring-gray-950/[0.04]">
               {NAV_LINKS.map(({ href, label }) => {
                 const isActive = pathname.startsWith(href);
                 return (
@@ -143,13 +127,7 @@ function Header() {
                     {isActive && (
                       <motion.div
                         layoutId="nav-pill"
-                        className="absolute inset-0 rounded-full"
-                        style={{
-                          background: isScrolled ? "#fff" : "rgba(255,255,255,0.15)",
-                          boxShadow: isScrolled
-                            ? "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)"
-                            : "0 1px 4px rgba(0,0,0,0.15)",
-                        }}
+                        className="absolute inset-0 rounded-full bg-white shadow-sm ring-1 ring-black/[0.04]"
                         transition={{
                           type: "spring",
                           stiffness: 500,
@@ -161,9 +139,7 @@ function Header() {
                       className={`relative z-10 transition-colors duration-200 ${
                         isActive
                           ? "text-[#FF6B35]"
-                          : isScrolled
-                            ? "text-gray-500 hover:text-gray-900"
-                            : "text-white/60 hover:text-white"
+                          : "text-gray-500 hover:text-gray-900"
                       }`}
                     >
                       {label}
@@ -180,11 +156,7 @@ function Header() {
               <SignInButton mode="redirect">
                 <button
                   type="button"
-                  className={`hidden rounded-full px-4 py-2 text-[13px] font-semibold transition-all sm:inline-flex ${
-                    isScrolled
-                      ? "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                      : "text-white/70 hover:bg-white/10 hover:text-white"
-                  }`}
+                  className="hidden rounded-full px-4 py-2 text-[13px] font-semibold text-gray-600 transition-all hover:bg-gray-100 hover:text-gray-900 sm:inline-flex"
                 >
                   Sign in
                 </button>
@@ -229,9 +201,7 @@ function Header() {
                       className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-semibold transition-all ${
                         isActive
                           ? "bg-[#FF6B35]/10 text-[#FF6B35]"
-                          : isScrolled
-                            ? "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-                            : "text-white/60 hover:bg-white/10 hover:text-white"
+                          : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
                       }`}
                     >
                       <Icon className="size-3.5" />
@@ -240,11 +210,8 @@ function Header() {
                   );
                 })}
               </nav>
-              <div
-                className="mx-1 hidden h-5 w-px md:block transition-colors duration-300"
-                style={{ background: isScrolled ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)" }}
-              />
-              <NotificationBell isScrolled={isScrolled} />
+              <div className="mx-1 hidden h-5 w-px bg-gray-200 md:block" />
+              <NotificationBell />
               <UserButton
                 afterSignOutUrl="/"
                 appearance={{
@@ -259,11 +226,7 @@ function Header() {
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
-              className={`relative inline-flex size-10 items-center justify-center rounded-xl transition-colors md:hidden ${
-                isScrolled
-                  ? "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                  : "text-white/80 hover:bg-white/10 hover:text-white"
-              }`}
+              className="relative inline-flex size-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 md:hidden"
               aria-label="Open menu"
             >
               <Menu className="size-[22px]" strokeWidth={2} />
@@ -470,7 +433,7 @@ function Header() {
   );
 }
 
-function NotificationBell({ isScrolled }: { isScrolled: boolean }) {
+function NotificationBell() {
   const { isSignedIn } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -494,11 +457,7 @@ function NotificationBell({ isScrolled }: { isScrolled: boolean }) {
   return (
     <Link
       href="/dashboard"
-      className={`relative rounded-lg p-2 transition-colors ${
-        isScrolled
-          ? "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-          : "text-white/60 hover:bg-white/10 hover:text-white"
-      }`}
+      className="relative rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
       title="Notifications"
     >
       <Bell className="size-[18px]" />
