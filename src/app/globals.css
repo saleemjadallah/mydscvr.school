@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+@plugin "@tailwindcss/typography";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -160,6 +162,109 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Legal page prose refinements                                        */
+/* ------------------------------------------------------------------ */
+
+.legal-prose h2 {
+  margin-top: 2.5rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 1.375rem;
+  letter-spacing: -0.01em;
+}
+
+.legal-prose h3 {
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.05rem;
+  color: #1f2937;
+}
+
+.legal-prose p,
+.legal-prose li {
+  color: #4b5563;
+  line-height: 1.75;
+}
+
+.legal-prose strong {
+  color: #111827;
+}
+
+.legal-prose hr {
+  border-color: #f3f4f6;
+  margin: 2rem 0;
+}
+
+.legal-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  margin: 1.5rem 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.legal-prose thead th {
+  background: #f9fafb;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  text-transform: none;
+}
+
+.legal-prose tbody td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  color: #4b5563;
+  vertical-align: top;
+}
+
+.legal-prose tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.legal-prose tbody tr:hover {
+  background: #fafafa;
+}
+
+.legal-prose code {
+  font-size: 0.8125rem;
+  background: #f3f4f6;
+  border-radius: 0.25rem;
+  padding: 0.15rem 0.4rem;
+  color: #c2410c;
+  font-weight: 500;
+}
+
+.legal-prose address {
+  font-style: normal;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  line-height: 1.75;
+}
+
+.legal-prose ul {
+  padding-left: 1.5rem;
+}
+
+.legal-prose ul > li::marker {
+  color: #FF6B35;
+}
+
+.legal-prose ol > li::marker {
+  color: #FF6B35;
+  font-weight: 600;
 }
 
 @layer utilities {

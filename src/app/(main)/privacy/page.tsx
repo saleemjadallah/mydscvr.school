@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import LegalPageLayout from "@/components/LegalPageLayout";
 
 export const metadata: Metadata = {
   title: "Privacy Policy | mydscvr.ai",
@@ -10,19 +11,13 @@ export const dynamic = "force-dynamic";
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-      <article className="prose prose-neutral max-w-none dark:prose-invert prose-headings:font-semibold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl">
-        <h1>Privacy Policy</h1>
-        <p className="text-sm text-muted-foreground">
-          <strong>Effective Date:</strong> 1 March 2025
-          <br />
-          <strong>Last Updated:</strong> 25 February 2026
-          <br />
-          <strong>Version:</strong> 1.1
-        </p>
-
-        <hr />
-
+    <LegalPageLayout
+      title="Privacy Policy"
+      description="How mydscvr.ai collects, uses, stores, and protects your personal data in compliance with UAE data protection regulations."
+      effectiveDate="1 March 2025"
+      lastUpdated="25 February 2026"
+      version="1.1"
+    >
         {/* ---------------------------------------------------------------- */}
         {/* 1. INTRODUCTION */}
         {/* ---------------------------------------------------------------- */}
@@ -908,7 +903,6 @@ export default function PrivacyPolicyPage() {
           understood this Privacy Policy and consent to the collection, use, and
           disclosure of your information as described herein.
         </p>
-      </article>
-    </div>
+    </LegalPageLayout>
   );
 }
