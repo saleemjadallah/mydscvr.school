@@ -7,9 +7,6 @@ import {
   Sparkles,
   Star,
   MapPin,
-  Phone,
-  Globe,
-  Mail,
   GraduationCap,
   DollarSign,
   Users,
@@ -37,6 +34,8 @@ import SchoolNews from "@/components/SchoolNews";
 import SimilarSchools from "@/components/SimilarSchools";
 import GooglePlaceEmbed from "@/components/GooglePlaceEmbed";
 import AnimatedSection from "@/components/AnimatedSection";
+import SchoolContactCard from "@/components/SchoolContactCard";
+import SchoolMapsLink from "@/components/SchoolMapsLink";
 import type { School, KHDAReport, FeeHistory, Review } from "@/types";
 
 // ---------------------------------------------------------------------------
@@ -899,26 +898,14 @@ export default async function SchoolProfilePage({
                       {school.address}
                     </p>
                   )}
-                  <Link
-                    href={
-                      school.google_place_id
-                        ? `https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${school.google_place_id}`
-                        : school.latitude && school.longitude
-                          ? `https://www.google.com/maps/search/?api=1&query=${school.latitude},${school.longitude}`
-                          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${school.name}, ${school.area ?? "Dubai"}, UAE`)}`
-                    }
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5"
-                    >
-                      <ExternalLink className="size-3.5" />
-                      Open in Google Maps
-                    </Button>
-                  </Link>
+                  <SchoolMapsLink
+                    schoolId={school.id}
+                    schoolName={school.name}
+                    googlePlaceId={school.google_place_id}
+                    latitude={school.latitude}
+                    longitude={school.longitude}
+                    area={school.area}
+                  />
                 </div>
               </div>
             </AnimatedSection>
@@ -932,90 +919,17 @@ export default async function SchoolProfilePage({
               {/* ----------------------------------------------------------
                   Quick Contact Card
                   ---------------------------------------------------------- */}
-              <div
-                className="relative overflow-hidden rounded-2xl bg-white p-5"
-                style={{ boxShadow: "var(--shadow-card)" }}
-              >
-                {/* Gradient top stripe */}
-                <div
-                  className="absolute inset-x-0 top-0 h-1"
-                  style={{
-                    background: "linear-gradient(90deg, #FF6B35, #FBBF24)",
-                  }}
-                />
-
-                <h3 className="mb-4 text-base font-semibold text-gray-900">
-                  Contact {school.name}
-                </h3>
-
-                <div className="space-y-3">
-                  {school.phone && (
-                    <Link
-                      href={`tel:${school.phone}`}
-                      className="flex items-center gap-3 rounded-xl p-2.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
-                    >
-                      <Phone className="size-4 flex-shrink-0 text-[#FF6B35]" />
-                      <span>{school.phone}</span>
-                    </Link>
-                  )}
-
-                  {(school.email ?? school.admission_email) && (
-                    <Link
-                      href={`mailto:${school.admission_email ?? school.email}`}
-                      className="flex items-center gap-3 rounded-xl p-2.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
-                    >
-                      <Mail className="size-4 flex-shrink-0 text-[#FF6B35]" />
-                      <span className="truncate">
-                        {school.admission_email ?? school.email}
-                      </span>
-                    </Link>
-                  )}
-
-                  {school.website && (
-                    <Link
-                      href={school.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 rounded-xl p-2.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
-                    >
-                      <Globe className="size-4 flex-shrink-0 text-[#FF6B35]" />
-                      <span className="truncate">Visit Website</span>
-                      <ExternalLink className="ml-auto size-3.5 flex-shrink-0 text-gray-400" />
-                    </Link>
-                  )}
-
-                  {school.whatsapp && (
-                    <Link
-                      href={`https://wa.me/${school.whatsapp.replace(/\D/g, "")}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 rounded-xl p-2.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
-                    >
-                      <Phone className="size-4 flex-shrink-0 text-green-600" />
-                      <span>WhatsApp</span>
-                      <ExternalLink className="ml-auto size-3.5 flex-shrink-0 text-gray-400" />
-                    </Link>
-                  )}
-                </div>
-
-                {school.khda_inspection_url && (
-                  <Link
-                    href={school.khda_inspection_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 block"
-                  >
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full gap-1.5"
-                    >
-                      <FileText className="size-3.5" />
-                      KHDA Inspection Page
-                    </Button>
-                  </Link>
-                )}
-              </div>
+              <SchoolContactCard
+                schoolId={school.id}
+                schoolName={school.name}
+                phone={school.phone}
+                email={school.email}
+                admissionEmail={school.admission_email}
+                website={school.website}
+                whatsapp={school.whatsapp}
+                khdaInspectionUrl={school.khda_inspection_url}
+                isFeatured={school.is_featured}
+              />
 
               {/* ----------------------------------------------------------
                   Enquiry Form

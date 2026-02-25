@@ -406,3 +406,27 @@ CREATE INDEX IF NOT EXISTS idx_pipeline_v2_runs_job_started ON pipeline_v2_runs(
 CREATE INDEX IF NOT EXISTS idx_pipeline_v2_snapshots_type_created ON pipeline_v2_snapshots(snapshot_type, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pipeline_v2_dlq_job_next ON pipeline_v2_dlq(job_name, next_retry_at) WHERE resolved_at IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_fee_history_unique ON fee_history (school_id, year, grade, source);
+
+-- ============================================
+-- OUTBOUND CLICKS TABLE (Attribution tracking)
+-- ============================================
+CREATE TABLE IF NOT EXISTS outbound_clicks (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  school_id     UUID REFERENCES schools(id) ON DELETE CASCADE,
+  user_id       UUID REFERENCES users(id) ON DELETE SET NULL,
+  click_type    TEXT NOT NULL,  -- 'website', 'phone', 'whatsapp', 'email', 'maps'
+  destination   TEXT NOT NULL,  -- full URL or phone number clicked
+  source_page   TEXT,           -- e.g. 'school-profile', 'compare', 'search'
+  search_query  TEXT,           -- what the parent searched before clicking
+  session_id    TEXT,           -- optional session tracking
+  ip_address    TEXT,           -- raw IP for unique visitor counting
+  user_agent    TEXT,           -- for bot filtering
+  utm_source    TEXT,
+  utm_medium    TEXT,
+  created_at    TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_outbound_clicks_school ON outbound_clicks(school_id);
+CREATE INDEX IF NOT EXISTS idx_outbound_clicks_created ON outbound_clicks(created_at);
+CREATE INDEX IF NOT EXISTS idx_outbound_clicks_school_type_created
+  ON outbound_clicks(school_id, click_type, created_at DESC);

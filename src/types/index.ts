@@ -411,3 +411,52 @@ export interface CompareResponse {
   khda_reports: Record<string, KHDAReportSummary[]>;
   review_summary: Record<string, ReviewSummary>;
 }
+
+// ============================================
+// OUTBOUND CLICK TRACKING
+// ============================================
+export type ClickType = "website" | "phone" | "whatsapp" | "email" | "maps";
+
+export interface OutboundClick {
+  id: string;
+  school_id: string;
+  user_id: string | null;
+  click_type: ClickType;
+  destination: string;
+  source_page: string | null;
+  search_query: string | null;
+  session_id: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  created_at: string;
+}
+
+export interface ClicksByType {
+  click_type: ClickType;
+  count: number;
+}
+
+export interface DailyClicks {
+  date: string;
+  count: number;
+}
+
+export interface TopSearchQuery {
+  query: string;
+  count: number;
+}
+
+export interface SchoolAnalyticsStats {
+  total_clicks: number;
+  unique_visitors: number;
+  enquiry_count: number;
+  by_type: ClicksByType[];
+  by_day: DailyClicks[];
+  top_search_queries: TopSearchQuery[];
+  previous_period: {
+    total_clicks: number;
+    change_pct: number;
+  };
+}

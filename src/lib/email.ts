@@ -30,13 +30,13 @@ export async function sendEnquiryEmail(params: EnquiryEmailParams) {
         <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
           <h2 style="color: #FF6B35;">Enquiry Sent!</h2>
           <p>Hi ${params.parentName},</p>
-          <p>Your enquiry to <strong>${params.schoolName}</strong> has been sent successfully.
-             The admissions team will typically respond within 1-2 business days.</p>
+          <p><a href="https://mydscvr.ai" style="color: #FF6B35; text-decoration: none; font-weight: 600;">mydscvr.ai</a> has forwarded your enquiry directly to the admissions team at <strong>${params.schoolName}</strong>.</p>
+          <p>They will typically respond within 1–2 business days.</p>
           <p>Your enquiry ID: <code>${params.enquiryId}</code></p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
           <p style="color: #999; font-size: 14px;">
-            This email was sent by <a href="https://mydscvr.ai">mydscvr.ai</a> —
-            Dubai's AI-powered school discovery platform.
+            This email was sent by <a href="https://mydscvr.ai" style="color: #999;">mydscvr.ai</a> —
+            Dubai's AI-powered school finder.
           </p>
         </div>
       `,
@@ -61,9 +61,11 @@ export async function sendEnquiryEmail(params: EnquiryEmailParams) {
             ${params.message ? `<p><strong>Message:</strong><br/>${params.message}</p>` : ""}
           </div>
 
-          <p>Please respond within 24-48 hours to maximise conversion.</p>
-          <p style="color: #999; font-size: 14px;">
-            Lead ID: ${params.enquiryId} | Powered by <a href="https://mydscvr.ai">mydscvr.ai</a>
+          <p>Please respond within 24–48 hours to maximise conversion.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+          <p style="color: #999; font-size: 13px;">
+            This enquiry was submitted via <a href="https://mydscvr.ai" style="color: #999;">mydscvr.ai</a> — Dubai's AI-powered school finder.
+            <br/>Lead ID: ${params.enquiryId}
           </p>
         </div>
       `,

@@ -259,3 +259,41 @@ export async function markNotificationRead(id: string) {
     { method: "PUT" }
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  Outbound click tracking                                            */
+/* ------------------------------------------------------------------ */
+
+import type { SchoolAnalyticsStats, ClickType } from "@/types";
+
+/**
+ * Fire-and-forget click tracker. Never throws, never blocks navigation.
+ * Uses `keepalive: true` so the request survives page unload.
+ */
+export function trackClick(params: {
+  school_id: string;
+  click_type: ClickType;
+  destination: string;
+  source_page?: string;
+  search_query?: string;
+  session_id?: string;
+}): void {
+  try {
+    fetch(`${BASE_URL}/api/track/click`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+      keepalive: true,
+    }).catch(() => {
+      // Silently ignore — tracking must never disrupt UX
+    });
+  } catch {
+    // Sync errors (e.g. body too large for keepalive) — also ignore
+  }
+}
+
+export async function getSchoolClickStats(schoolId: string, days: number = 30) {
+  return fetcher<SchoolAnalyticsStats>(
+    `/api/track/stats/${encodeURIComponent(schoolId)}?days=${days}`
+  );
+}
