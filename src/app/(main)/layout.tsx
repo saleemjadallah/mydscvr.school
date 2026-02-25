@@ -161,33 +161,25 @@ function Header() {
                   Sign in
                 </button>
               </SignInButton>
-              <div className="hidden flex-col items-center sm:flex">
-                <SignUpButton mode="redirect">
-                  <button
-                    type="button"
-                    className="group/cta relative inline-flex items-center gap-1.5 overflow-hidden rounded-full px-5 py-2.5 text-[13px] font-semibold text-white transition-all"
+              <SignUpButton mode="redirect">
+                <button
+                  type="button"
+                  className="group/cta relative hidden items-center gap-1.5 overflow-hidden rounded-full px-5 py-2.5 text-[13px] font-semibold text-white transition-all sm:inline-flex"
+                  style={{
+                    background: "linear-gradient(135deg, #FF6B35 0%, #FF8F5E 100%)",
+                  }}
+                >
+                  <span className="relative z-10">Get Started</span>
+                  <ArrowRight className="relative z-10 size-3.5 transition-transform duration-200 group-hover/cta:translate-x-0.5" />
+                  {/* Hover shimmer */}
+                  <div
+                    className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover/cta:opacity-100"
                     style={{
-                      background: "linear-gradient(135deg, #FF6B35 0%, #FF8F5E 100%)",
+                      background: "linear-gradient(135deg, #FF8F5E 0%, #FBBF24 100%)",
                     }}
-                  >
-                    <span className="relative z-10">Get Started</span>
-                    <ArrowRight className="relative z-10 size-3.5 transition-transform duration-200 group-hover/cta:translate-x-0.5" />
-                    {/* Hover shimmer */}
-                    <div
-                      className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover/cta:opacity-100"
-                      style={{
-                        background: "linear-gradient(135deg, #FF8F5E 0%, #FBBF24 100%)",
-                      }}
-                    />
-                  </button>
-                </SignUpButton>
-                <p className={`mt-1 text-[10px] leading-tight ${isScrolled ? "text-gray-400" : "text-white/40"}`}>
-                  By signing up, you agree to our{" "}
-                  <Link href="/terms" className="underline hover:text-[#FF6B35]">Terms</Link>
-                  {" & "}
-                  <Link href="/privacy" className="underline hover:text-[#FF6B35]">Privacy Policy</Link>
-                </p>
-              </div>
+                  />
+                </button>
+              </SignUpButton>
             </SignedOut>
 
             <SignedIn>
