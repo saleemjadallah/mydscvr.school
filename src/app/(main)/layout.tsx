@@ -114,7 +114,7 @@ function Header() {
           </Link>
 
           {/* Desktop navigation — pill nav */}
-          <nav className="hidden flex-1 items-center justify-center md:flex">
+          <nav className="hidden items-center md:flex">
             <div className="flex items-center gap-0.5 rounded-full bg-gray-950/[0.04] p-1 ring-1 ring-gray-950/[0.04]">
               {NAV_LINKS.map(({ href, label }) => {
                 const isActive = pathname.startsWith(href);
@@ -151,7 +151,7 @@ function Header() {
           </nav>
 
           {/* Right side: auth + mobile toggle */}
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2">
             <SignedOut>
               <SignInButton mode="redirect">
                 <button
