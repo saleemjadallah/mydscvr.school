@@ -14,11 +14,11 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         className="relative mb-8 flex items-center gap-2.5 transition-opacity hover:opacity-80"
       >
         <Image
-          src="/logo.webp"
+          src="/logos/Logo-Final-noBG.png"
           alt="mydscvr.ai"
-          width={40}
-          height={40}
-          className="size-10"
+          width={44}
+          height={44}
+          className="size-11"
         />
         <span className="text-2xl font-bold tracking-tight text-gradient-brand">
           mydscvr.ai

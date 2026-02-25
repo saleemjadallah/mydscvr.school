@@ -54,13 +54,13 @@ function Header() {
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2.5">
           <Image
-            src="/logo.webp"
+            src="/logos/Logo-Final-noBG.png"
             alt="mydscvr.ai"
-            width={32}
-            height={32}
-            className="size-8"
+            width={40}
+            height={40}
+            className="size-10"
           />
           <span className="text-xl font-bold tracking-tight text-gradient-brand">
             mydscvr.ai
@@ -179,13 +179,13 @@ function Header() {
               <SheetTitle className="sr-only">Navigation menu</SheetTitle>
               <div className="flex h-full flex-col">
                 {/* Mobile nav header */}
-                <div className="flex items-center gap-2 border-b px-6 py-5">
+                <div className="flex items-center gap-2.5 border-b px-6 py-5">
                   <Image
-                    src="/logo.webp"
+                    src="/logos/Logo-Final-noBG.png"
                     alt="mydscvr.ai"
-                    width={28}
-                    height={28}
-                    className="size-7"
+                    width={36}
+                    height={36}
+                    className="size-9"
                   />
                   <span className="text-lg font-bold text-gradient-brand">
                     mydscvr.ai
@@ -337,13 +337,13 @@ function Footer() {
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
           {/* Brand column */}
           <div className="col-span-2 sm:col-span-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <Image
-                src="/logo.webp"
+                src="/logos/Logo-Final-noBG.png"
                 alt="mydscvr.ai"
-                width={28}
-                height={28}
-                className="size-7 rounded"
+                width={40}
+                height={40}
+                className="size-10"
               />
               <span className="text-xl font-bold text-gradient-brand">
                 mydscvr.ai
