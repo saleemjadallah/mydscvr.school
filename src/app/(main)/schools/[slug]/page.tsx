@@ -946,7 +946,16 @@ export default async function SchoolProfilePage({
                     background: "linear-gradient(90deg, #6B21A8, #A855F7)",
                   }}
                 />
-                <EnquiryForm school={{ id: school.id, name: school.name }} />
+                <EnquiryForm
+                  school={{
+                    id: school.id,
+                    name: school.name,
+                    curriculum: school.curriculum,
+                    khda_rating: school.khda_rating,
+                    type: school.type,
+                    has_sen_support: school.has_sen_support,
+                  }}
+                />
               </div>
 
               {/* ----------------------------------------------------------

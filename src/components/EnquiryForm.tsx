@@ -7,7 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  GraduationCap,
+  CalendarSearch,
+  DollarSign,
+  ArrowRightLeft,
+  Heart,
+} from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -17,6 +26,10 @@ interface EnquiryFormProps {
   school: {
     id: string;
     name: string;
+    curriculum?: string[];
+    khda_rating?: string | null;
+    type?: "school" | "nursery";
+    has_sen_support?: boolean;
   };
 }
 
@@ -34,18 +47,259 @@ interface EnquiryFormValues {
 }
 
 // ---------------------------------------------------------------------------
+// Message templates
+// ---------------------------------------------------------------------------
+
+interface MessageTemplate {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  generate: (ctx: TemplateContext) => string;
+  /** Only show this template when the condition is met */
+  condition?: (school: EnquiryFormProps["school"]) => boolean;
+}
+
+interface TemplateContext {
+  schoolName: string;
+  childName: string;
+  childGrade: string;
+  preferredStart: string;
+  curriculum: string;
+  khdaRating: string | null;
+  isNursery: boolean;
+}
+
+function formatStartDate(dateStr: string): string {
+  if (!dateStr) return "";
+  try {
+    return new Date(dateStr).toLocaleDateString("en-GB", {
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
+const MESSAGE_TEMPLATES: MessageTemplate[] = [
+  {
+    id: "general",
+    label: "General Admission",
+    icon: <GraduationCap className="size-3.5" />,
+    generate: (ctx) => {
+      const parts: string[] = [];
+      parts.push(`Dear Admissions Team at ${ctx.schoolName},`);
+      parts.push("");
+
+      const childRef = ctx.childName || "my child";
+      const gradeRef = ctx.childGrade
+        ? ` for ${ctx.childGrade}`
+        : ctx.isNursery
+          ? ""
+          : "";
+      parts.push(
+        `I am writing to enquire about admission${gradeRef} for ${childRef}.`
+      );
+
+      if (ctx.curriculum) {
+        parts.push(
+          `We are particularly interested in your ${ctx.curriculum} programme${ctx.khdaRating ? ` and your ${ctx.khdaRating} KHDA rating` : ""}.`
+        );
+      } else if (ctx.khdaRating) {
+        parts.push(
+          `Your ${ctx.khdaRating} KHDA rating stood out to us during our research.`
+        );
+      }
+
+      if (ctx.preferredStart) {
+        parts.push(
+          `We are looking to start in ${formatStartDate(ctx.preferredStart)}.`
+        );
+      }
+
+      parts.push("");
+      parts.push(
+        "Could you please share details on the admissions process, availability, and any documentation required?"
+      );
+      parts.push("");
+      parts.push("Thank you for your time. I look forward to hearing from you.");
+
+      return parts.join("\n");
+    },
+  },
+  {
+    id: "tour",
+    label: "School Tour",
+    icon: <CalendarSearch className="size-3.5" />,
+    generate: (ctx) => {
+      const parts: string[] = [];
+      parts.push(`Dear Admissions Team at ${ctx.schoolName},`);
+      parts.push("");
+
+      const childRef = ctx.childName || "my child";
+      parts.push(
+        `We are considering ${ctx.schoolName} for ${childRef}${ctx.childGrade ? ` (${ctx.childGrade})` : ""} and would love to arrange a campus tour.`
+      );
+
+      if (ctx.curriculum || ctx.khdaRating) {
+        const highlights = [
+          ctx.curriculum ? `the ${ctx.curriculum} curriculum` : "",
+          ctx.khdaRating ? `your ${ctx.khdaRating} KHDA rating` : "",
+        ]
+          .filter(Boolean)
+          .join(" and ");
+        parts.push(
+          `We have been impressed by ${highlights} and would appreciate the opportunity to see the facilities and meet the team in person.`
+        );
+      }
+
+      parts.push("");
+      parts.push(
+        "Could you please let me know available dates and times for a school visit?"
+      );
+
+      if (ctx.preferredStart) {
+        parts.push(
+          `We are hoping to join for ${formatStartDate(ctx.preferredStart)}.`
+        );
+      }
+
+      parts.push("");
+      parts.push("Thank you — looking forward to your response.");
+
+      return parts.join("\n");
+    },
+  },
+  {
+    id: "fees",
+    label: "Fees & Scholarships",
+    icon: <DollarSign className="size-3.5" />,
+    generate: (ctx) => {
+      const parts: string[] = [];
+      parts.push(`Dear Admissions Team at ${ctx.schoolName},`);
+      parts.push("");
+
+      const childRef = ctx.childName || "my child";
+      parts.push(
+        `I am exploring ${ctx.isNursery ? "nursery" : "school"} options for ${childRef}${ctx.childGrade ? ` (${ctx.childGrade})` : ""} and would appreciate detailed information about your fee structure.`
+      );
+
+      parts.push("");
+      parts.push("Specifically, I would like to understand:");
+      parts.push("- Tuition fees and what is included");
+      parts.push("- Payment plan options (termly/annual)");
+      parts.push("- Any registration or admission fees");
+      parts.push("- Available scholarships or sibling discounts");
+
+      if (ctx.preferredStart) {
+        parts.push("");
+        parts.push(
+          `We are considering enrolment for ${formatStartDate(ctx.preferredStart)}.`
+        );
+      }
+
+      parts.push("");
+      parts.push("Thank you for your time.");
+
+      return parts.join("\n");
+    },
+  },
+  {
+    id: "transfer",
+    label: "Transfer Enquiry",
+    icon: <ArrowRightLeft className="size-3.5" />,
+    generate: (ctx) => {
+      const parts: string[] = [];
+      parts.push(`Dear Admissions Team at ${ctx.schoolName},`);
+      parts.push("");
+
+      const childRef = ctx.childName || "my child";
+      parts.push(
+        `${childRef} is currently enrolled at another ${ctx.isNursery ? "nursery" : "school"} and we are looking to transfer${ctx.childGrade ? ` (currently in ${ctx.childGrade})` : ""}.`
+      );
+
+      if (ctx.curriculum) {
+        parts.push(
+          `We are particularly drawn to your ${ctx.curriculum} programme as a better fit for our family.`
+        );
+      }
+
+      parts.push("");
+      parts.push("Could you please advise on:");
+      parts.push("- Mid-year or next-term transfer availability");
+      parts.push("- Required documentation for transfers");
+      parts.push("- Any assessment or entrance requirements");
+
+      if (ctx.preferredStart) {
+        parts.push("");
+        parts.push(
+          `We are hoping to complete the transfer by ${formatStartDate(ctx.preferredStart)}.`
+        );
+      }
+
+      parts.push("");
+      parts.push("Thank you — I look forward to hearing from you.");
+
+      return parts.join("\n");
+    },
+  },
+  {
+    id: "sen",
+    label: "SEN / Inclusion",
+    icon: <Heart className="size-3.5" />,
+    condition: (school) => school.has_sen_support === true,
+    generate: (ctx) => {
+      const parts: string[] = [];
+      parts.push(`Dear Admissions & Inclusion Team at ${ctx.schoolName},`);
+      parts.push("");
+
+      const childRef = ctx.childName || "my child";
+      parts.push(
+        `I am writing to enquire about your Special Educational Needs and inclusion support for ${childRef}${ctx.childGrade ? ` (${ctx.childGrade})` : ""}.`
+      );
+
+      parts.push("");
+      parts.push("I would appreciate information on:");
+      parts.push(
+        "- The range of learning support and SEN provisions available"
+      );
+      parts.push("- Staff-to-student ratios within the inclusion programme");
+      parts.push("- Any specialist staff or external support partnerships");
+      parts.push("- How individualised learning plans are developed");
+
+      if (ctx.preferredStart) {
+        parts.push("");
+        parts.push(
+          `We are looking at a ${formatStartDate(ctx.preferredStart)} start date.`
+        );
+      }
+
+      parts.push("");
+      parts.push(
+        "I would also welcome the opportunity to discuss our child's needs in more detail. Thank you."
+      );
+
+      return parts.join("\n");
+    },
+  },
+];
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function EnquiryForm({ school }: EnquiryFormProps) {
   const [submitted, setSubmitted] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [activeTemplate, setActiveTemplate] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
+    setValue,
+    watch,
   } = useForm<EnquiryFormValues>({
     defaultValues: {
       parent_name: "",
@@ -60,6 +314,30 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
       message: "",
     },
   });
+
+  const childName = watch("child_name");
+  const childGrade = watch("child_grade");
+  const preferredStart = watch("preferred_start");
+
+  const applyTemplate = (template: MessageTemplate) => {
+    const ctx: TemplateContext = {
+      schoolName: school.name,
+      childName: childName?.trim() || "",
+      childGrade: childGrade?.trim() || "",
+      preferredStart: preferredStart || "",
+      curriculum: school.curriculum?.join(" / ") || "",
+      khdaRating: school.khda_rating || null,
+      isNursery: school.type === "nursery",
+    };
+
+    const message = template.generate(ctx);
+    setValue("message", message, { shouldDirty: true });
+    setActiveTemplate(template.id);
+  };
+
+  const visibleTemplates = MESSAGE_TEMPLATES.filter(
+    (t) => !t.condition || t.condition(school)
+  );
 
   const onSubmit = async (data: EnquiryFormValues) => {
     try {
@@ -88,6 +366,7 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
       }
 
       setSubmitted(true);
+      setActiveTemplate(null);
       reset();
     } catch (err) {
       toast.error(
@@ -284,15 +563,45 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
         </div>
       )}
 
-      {/* Message */}
+      {/* Message with template presets */}
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="message">Message</Label>
+
+        {/* Template chips */}
+        <div className="flex flex-wrap gap-1.5">
+          {visibleTemplates.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => applyTemplate(t)}
+              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                activeTemplate === t.id
+                  ? "border-[#FF6B35] bg-[#FF6B35]/10 text-[#FF6B35]"
+                  : "border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:bg-gray-100"
+              }`}
+            >
+              {t.icon}
+              {t.label}
+            </button>
+          ))}
+        </div>
+
         <Textarea
           id="message"
-          rows={3}
-          placeholder="Any questions or additional information..."
+          rows={5}
+          placeholder="Select a template above or write your own message..."
           {...register("message")}
+          onChange={(e) => {
+            register("message").onChange(e);
+            // Clear active template indicator if user edits manually
+            if (activeTemplate) setActiveTemplate(null);
+          }}
         />
+        {activeTemplate && (
+          <p className="text-[11px] text-gray-400">
+            You can edit the message above before sending.
+          </p>
+        )}
       </div>
 
       {/* Submit */}
