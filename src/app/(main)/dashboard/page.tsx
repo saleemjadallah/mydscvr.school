@@ -22,6 +22,9 @@ import {
   Settings,
   Sparkles,
   MapPin,
+  Bell,
+  AlertTriangle,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +44,7 @@ interface DashboardEnquiry {
   school_area: string | null;
   khda_rating: string | null;
   google_photos: string[] | null;
+  days_waiting?: number;
 }
 
 interface RecentSearch {
@@ -50,10 +54,19 @@ interface RecentSearch {
   created_at: string;
 }
 
+interface EnquiryStatsData {
+  total: number;
+  by_status: Record<string, number>;
+  response_rate: number;
+  pending_count: number;
+}
+
 interface ActivityData {
   saved_count: number;
   enquiries: DashboardEnquiry[];
   recent_searches: RecentSearch[];
+  enquiry_stats?: EnquiryStatsData;
+  unread_notification_count?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -77,7 +90,7 @@ export default function DashboardPage() {
               place.
             </p>
             <div className="mt-8">
-              <SignInButton mode="modal">
+              <SignInButton mode="redirect">
                 <Button className="bg-[#FF6B35] px-8 py-3 text-base text-white hover:bg-[#e55a2a]">
                   <LogIn className="mr-2 size-5" />
                   Sign In
@@ -104,6 +117,7 @@ function DashboardContent() {
   const { user: clerkUser } = useUser();
   const [activity, setActivity] = useState<ActivityData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [enquiryFilter, setEnquiryFilter] = useState<"all" | "pending">("all");
 
   useEffect(() => {
     if (!isSignedIn) return;
@@ -115,8 +129,11 @@ function DashboardContent() {
         const data = await res.json();
         setActivity(data);
       } catch {
-        // Gracefully show empty state
-        setActivity({ saved_count: 0, enquiries: [], recent_searches: [] });
+        setActivity({
+          saved_count: 0,
+          enquiries: [],
+          recent_searches: [],
+        });
       } finally {
         setLoading(false);
       }
@@ -137,18 +154,98 @@ function DashboardContent() {
   }
 
   const firstName = clerkUser?.firstName || "there";
+  const stats = activity?.enquiry_stats;
+  const unreadCount = activity?.unread_notification_count ?? 0;
+
+  const filteredEnquiries =
+    enquiryFilter === "pending"
+      ? activity?.enquiries.filter(
+          (e) => e.status === "new" || e.status === "sent_to_school"
+        ) ?? []
+      : activity?.enquiries ?? [];
 
   return (
     <>
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Welcome back, {firstName}
-        </h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Here&apos;s your school search activity at a glance.
-        </p>
+      {/* Header with notification bell */}
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Welcome back, {firstName}
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Here&apos;s your school search activity at a glance.
+          </p>
+        </div>
+        <Link
+          href="/profile?tab=notifications"
+          className="relative rounded-xl border bg-white p-2.5 shadow-sm transition-all hover:shadow-md"
+          title="Notifications"
+        >
+          <Bell className="size-5 text-gray-600" />
+          {unreadCount > 0 && (
+            <span className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-[#FF6B35] text-[10px] font-bold text-white">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </Link>
       </div>
+
+      {/* ---- Enquiry Stats Row ---- */}
+      {stats && stats.total > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 grid gap-4 sm:grid-cols-3"
+        >
+          <div className="flex items-center gap-3 rounded-xl border bg-white p-4 shadow-sm">
+            <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-50">
+              <TrendingUp className="size-5 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-gray-900">
+                {Math.round(stats.response_rate * 100)}%
+              </p>
+              <p className="text-xs text-gray-500">Response Rate</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-xl border bg-white p-4 shadow-sm">
+            <div className="flex size-10 items-center justify-center rounded-lg bg-blue-50">
+              <Send className="size-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-gray-900">{stats.total}</p>
+              <p className="text-xs text-gray-500">Total Enquiries</p>
+            </div>
+          </div>
+
+          <div
+            className={`flex items-center gap-3 rounded-xl border p-4 shadow-sm ${
+              stats.pending_count > 0
+                ? "border-amber-200 bg-amber-50"
+                : "bg-white"
+            }`}
+          >
+            <div
+              className={`flex size-10 items-center justify-center rounded-lg ${
+                stats.pending_count > 0 ? "bg-amber-100" : "bg-gray-50"
+              }`}
+            >
+              <AlertTriangle
+                className={`size-5 ${
+                  stats.pending_count > 0 ? "text-amber-600" : "text-gray-400"
+                }`}
+              />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-gray-900">
+                {stats.pending_count}
+              </p>
+              <p className="text-xs text-gray-500">Awaiting Response</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* ---- Stats Cards ---- */}
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
@@ -217,24 +314,67 @@ function DashboardContent() {
           <h2 className="text-lg font-semibold text-gray-900">
             Your Enquiries
           </h2>
-          {(activity?.enquiries.length ?? 0) > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {activity!.enquiries.length} total
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {stats && stats.pending_count > 0 && (
+              <div className="flex rounded-lg border border-gray-200 bg-white text-xs font-medium">
+                <button
+                  type="button"
+                  onClick={() => setEnquiryFilter("all")}
+                  className={`rounded-l-lg px-3 py-1.5 transition-colors ${
+                    enquiryFilter === "all"
+                      ? "bg-[#FF6B35] text-white"
+                      : "text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEnquiryFilter("pending")}
+                  className={`rounded-r-lg px-3 py-1.5 transition-colors ${
+                    enquiryFilter === "pending"
+                      ? "bg-amber-500 text-white"
+                      : "text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  Pending ({stats.pending_count})
+                </button>
+              </div>
+            )}
+            {(activity?.enquiries.length ?? 0) > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {activity!.enquiries.length} total
+              </Badge>
+            )}
+          </div>
         </div>
 
-        {activity?.enquiries.length === 0 ? (
+        {filteredEnquiries.length === 0 ? (
           <EmptyState
             icon={<Send className="size-8 text-gray-300" />}
-            title="No enquiries yet"
-            description="When you enquire at a school, you'll see the status here."
-            actionLabel="Browse Schools"
-            actionHref="/schools"
+            title={
+              enquiryFilter === "pending"
+                ? "No pending enquiries"
+                : "No enquiries yet"
+            }
+            description={
+              enquiryFilter === "pending"
+                ? "All your enquiries have been responded to."
+                : "When you enquire at a school, you'll see the status here."
+            }
+            actionLabel={
+              enquiryFilter === "pending" ? "Show All" : "Browse Schools"
+            }
+            actionHref={enquiryFilter === "pending" ? undefined : "/schools"}
+            onAction={
+              enquiryFilter === "pending"
+                ? () => setEnquiryFilter("all")
+                : undefined
+            }
           />
         ) : (
           <div className="space-y-3">
-            {activity!.enquiries.map((enquiry) => (
+            {filteredEnquiries.map((enquiry) => (
               <EnquiryCard key={enquiry.id} enquiry={enquiry} />
             ))}
           </div>
@@ -365,10 +505,19 @@ function QuickAction({
 
 function EnquiryCard({ enquiry }: { enquiry: DashboardEnquiry }) {
   const heroPhoto = enquiry.google_photos?.[0] ?? null;
+  const isPending =
+    (enquiry.status === "new" || enquiry.status === "sent_to_school") &&
+    (enquiry.days_waiting ?? 0) >= 7;
 
   return (
     <Link href={`/schools/${enquiry.school_slug}`}>
-      <div className="flex items-center gap-4 rounded-xl border bg-white p-4 shadow-sm transition-all hover:shadow-md">
+      <div
+        className={`flex items-center gap-4 rounded-xl border p-4 shadow-sm transition-all hover:shadow-md ${
+          isPending
+            ? "border-amber-200 bg-amber-50/50"
+            : "border-gray-200 bg-white"
+        }`}
+      >
         {/* School image */}
         <div className="relative size-14 flex-shrink-0 overflow-hidden rounded-lg">
           {heroPhoto ? (
@@ -404,12 +553,14 @@ function EnquiryCard({ enquiry }: { enquiry: DashboardEnquiry }) {
                 {enquiry.school_area}
               </span>
             )}
-            {enquiry.child_grade && (
-              <span>
-                {enquiry.child_grade}
-              </span>
-            )}
+            {enquiry.child_grade && <span>{enquiry.child_grade}</span>}
           </div>
+          {isPending && (
+            <p className="mt-1 flex items-center gap-1 text-xs text-amber-600">
+              <Clock className="size-3" />
+              {enquiry.days_waiting}d waiting — no response yet
+            </p>
+          )}
         </div>
 
         {/* Status + date */}
@@ -425,7 +576,10 @@ function EnquiryCard({ enquiry }: { enquiry: DashboardEnquiry }) {
 }
 
 function EnquiryStatusBadge({ status }: { status: string }) {
-  const config: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
+  const config: Record<
+    string,
+    { label: string; className: string; icon: React.ReactNode }
+  > = {
     new: {
       label: "Sent",
       className: "bg-blue-50 text-blue-700 border-blue-200",
@@ -471,12 +625,14 @@ function EmptyState({
   description,
   actionLabel,
   actionHref,
+  onAction,
 }: {
   icon: React.ReactNode;
   title: string;
   description: string;
   actionLabel: string;
-  actionHref: string;
+  actionHref?: string;
+  onAction?: () => void;
 }) {
   return (
     <div className="rounded-2xl border bg-white p-8 text-center shadow-sm">
@@ -488,16 +644,28 @@ function EmptyState({
         {description}
       </p>
       <div className="mt-5">
-        <Link href={actionHref}>
+        {actionHref ? (
+          <Link href={actionHref}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-[#FF6B35] border-[#FF6B35]/30 hover:bg-[#FF6B35]/5"
+            >
+              {actionLabel}
+              <ArrowRight className="ml-1.5 size-3.5" />
+            </Button>
+          </Link>
+        ) : (
           <Button
             variant="outline"
             size="sm"
+            onClick={onAction}
             className="text-[#FF6B35] border-[#FF6B35]/30 hover:bg-[#FF6B35]/5"
           >
             {actionLabel}
             <ArrowRight className="ml-1.5 size-3.5" />
           </Button>
-        </Link>
+        )}
       </div>
     </div>
   );

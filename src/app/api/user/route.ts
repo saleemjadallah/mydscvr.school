@@ -13,6 +13,7 @@ export async function GET() {
     const clerkUser = await currentUser();
 
     // Upsert user with Clerk data
+    const userEmail = clerkUser?.emailAddresses?.[0]?.emailAddress ?? userId;
     const result = await db.query(
       `INSERT INTO users (clerk_id, email, name)
        VALUES ($1, $2, $3)
@@ -23,14 +24,23 @@ export async function GET() {
        RETURNING *`,
       [
         userId,
-        clerkUser?.emailAddresses?.[0]?.emailAddress ?? userId,
+        userEmail,
         clerkUser?.firstName
           ? `${clerkUser.firstName}${clerkUser.lastName ? ` ${clerkUser.lastName}` : ""}`
           : null,
       ]
     );
 
-    return NextResponse.json({ user: result.rows[0] });
+    const user = result.rows[0];
+
+    // Auto-link any existing enquiries that match this user's email
+    await db.query(
+      `UPDATE enquiries SET user_id = $1
+       WHERE parent_email = $2 AND user_id IS NULL`,
+      [user.id, userEmail]
+    );
+
+    return NextResponse.json({ user });
   } catch (error) {
     console.error("Get user error:", error);
     return NextResponse.json(

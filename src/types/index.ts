@@ -156,6 +156,7 @@ export interface Review {
 export interface Enquiry {
   id: string;
   school_id: string;
+  user_id: string | null;
   parent_name: string;
   parent_email: string;
   parent_phone: string | null;
@@ -182,6 +183,55 @@ export interface Enquiry {
   billed_amount: number | null;
   created_at: string;
   school_name?: string;
+}
+
+// ============================================
+// NOTIFICATION PREFERENCES
+// ============================================
+export interface UserNotificationPrefs {
+  user_id: string;
+  enquiry_no_response_days: number;
+  email_enquiry_updates: boolean;
+  email_school_news: boolean;
+  email_weekly_digest: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================
+// ENQUIRY NOTIFICATION
+// ============================================
+export interface EnquiryNotification {
+  id: string;
+  enquiry_id: string;
+  user_id: string;
+  type: "no_response_reminder";
+  message: string | null;
+  sent_at: string | null;
+  read_at: string | null;
+  created_at: string;
+  // Joined fields
+  school_name?: string;
+  school_slug?: string;
+}
+
+// ============================================
+// ENQUIRY STATS
+// ============================================
+export interface EnquiryStats {
+  total: number;
+  by_status: Record<string, number>;
+  response_rate: number;
+  avg_response_days: number | null;
+  schools_enquired: number;
+  pending_no_response: PendingEnquiry[];
+}
+
+export interface PendingEnquiry {
+  enquiry_id: string;
+  school_name: string;
+  school_slug: string;
+  days_waiting: number;
 }
 
 // ============================================

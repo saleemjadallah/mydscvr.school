@@ -207,5 +207,55 @@ export async function getUserActivity() {
     saved_count: number;
     enquiries: unknown[];
     recent_searches: unknown[];
+    enquiry_stats?: {
+      total: number;
+      by_status: Record<string, number>;
+      response_rate: number;
+      pending_count: number;
+    };
+    unread_notification_count?: number;
   }>("/api/user/activity");
+}
+
+/* ------------------------------------------------------------------ */
+/*  Enquiry stats                                                      */
+/* ------------------------------------------------------------------ */
+
+import type { EnquiryStats, UserNotificationPrefs, EnquiryNotification } from "@/types";
+
+export async function getEnquiryStats() {
+  return fetcher<EnquiryStats>("/api/user/enquiry-stats");
+}
+
+/* ------------------------------------------------------------------ */
+/*  Notification preferences                                           */
+/* ------------------------------------------------------------------ */
+
+export async function getNotificationPrefs() {
+  return fetcher<{ prefs: UserNotificationPrefs }>("/api/user/notification-prefs");
+}
+
+export async function updateNotificationPrefs(data: Partial<UserNotificationPrefs>) {
+  return fetcher<{ prefs: UserNotificationPrefs }>("/api/user/notification-prefs", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/*  Notifications                                                      */
+/* ------------------------------------------------------------------ */
+
+export async function getNotifications() {
+  return fetcher<{
+    notifications: EnquiryNotification[];
+    unread_count: number;
+  }>("/api/user/notifications");
+}
+
+export async function markNotificationRead(id: string) {
+  return fetcher<{ notification: EnquiryNotification }>(
+    `/api/user/notifications/${id}`,
+    { method: "PUT" }
+  );
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import db from "@/db";
 import { sendEnquiryEmail } from "@/lib/email";
 
@@ -42,14 +43,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "School not found" }, { status: 404 });
     }
 
+    // Check if user is authenticated to link the enquiry
+    let internalUserId: string | null = null;
+    try {
+      const { userId } = await auth();
+      if (userId) {
+        const userResult = await db.query(
+          `SELECT id FROM users WHERE clerk_id = $1`,
+          [userId]
+        );
+        if (userResult.rows[0]) {
+          internalUserId = userResult.rows[0].id;
+        }
+      }
+    } catch {
+      // Not authenticated — continue without user_id
+    }
+
     // Insert enquiry
     const result = await db.query(
       `
       INSERT INTO enquiries (
         school_id, parent_name, parent_email, parent_phone, parent_whatsapp,
         child_name, child_dob, child_grade, child_year, message, preferred_start,
-        siblings, source, search_query, utm_source, utm_medium, utm_campaign
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+        siblings, source, search_query, utm_source, utm_medium, utm_campaign, user_id
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
       RETURNING id
     `,
       [
@@ -70,6 +88,7 @@ export async function POST(request: NextRequest) {
         utm_source || null,
         utm_medium || null,
         utm_campaign || null,
+        internalUserId,
       ]
     );
 

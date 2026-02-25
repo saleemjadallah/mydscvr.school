@@ -102,7 +102,7 @@ function Header() {
         {/* Auth nav + mobile menu */}
         <div className="flex items-center gap-3">
           <SignedOut>
-            <SignInButton mode="modal">
+            <SignInButton mode="redirect">
               <button
                 type="button"
                 className="rounded-full px-5 py-2 text-sm font-semibold text-white transition-all hover:opacity-90 btn-glow"
@@ -238,7 +238,7 @@ function Header() {
                 {/* Mobile CTA */}
                 <div className="border-t px-6 py-5">
                   <SignedOut>
-                    <SignInButton mode="modal">
+                    <SignInButton mode="redirect">
                       <button
                         type="button"
                         className="w-full rounded-xl px-4 py-3 text-sm font-semibold text-white btn-glow"

@@ -70,3 +70,63 @@ export async function sendEnquiryEmail(params: EnquiryEmailParams) {
     });
   }
 }
+
+// ---------------------------------------------------------------------------
+// No-response reminder email
+// ---------------------------------------------------------------------------
+
+interface NoResponseReminderParams {
+  to: string;
+  parentName: string;
+  schoolName: string;
+  daysWaiting: number;
+  enquiryId: string;
+}
+
+export async function sendNoResponseReminderEmail(
+  params: NoResponseReminderParams
+) {
+  return getResend().emails.send({
+    from: "mydscvr.ai <hello@mydscvr.ai>",
+    to: params.to,
+    subject: `Reminder: Your enquiry to ${params.schoolName} — ${params.daysWaiting} days waiting`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
+        <h2 style="color: #FF6B35;">Enquiry Follow-up</h2>
+        <p>Hi ${params.parentName},</p>
+        <p>Your enquiry to <strong>${params.schoolName}</strong> has been waiting
+           <strong>${params.daysWaiting} days</strong> without a response.</p>
+
+        <div style="background: #fff7ed; padding: 16px; border-radius: 8px; margin: 16px 0; border: 1px solid #fed7aa;">
+          <p style="margin: 0; font-size: 14px;">
+            <strong>What you can do:</strong>
+          </p>
+          <ul style="margin: 8px 0 0; padding-left: 18px; font-size: 14px;">
+            <li>Contact the school directly via their website or phone</li>
+            <li>Submit an enquiry to similar schools on mydscvr.ai</li>
+            <li>Check your dashboard for updates</li>
+          </ul>
+        </div>
+
+        <p>
+          <a href="https://mydscvr.ai/dashboard"
+             style="display: inline-block; background: #FF6B35; color: white;
+                    padding: 10px 24px; border-radius: 8px; text-decoration: none;
+                    font-weight: 600; font-size: 14px;">
+            View Dashboard
+          </a>
+        </p>
+
+        <p style="color: #999; font-size: 14px;">
+          Enquiry ID: ${params.enquiryId} |
+          <a href="https://mydscvr.ai/profile?tab=notifications">Manage notification preferences</a>
+        </p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+        <p style="color: #999; font-size: 14px;">
+          This email was sent by <a href="https://mydscvr.ai">mydscvr.ai</a> —
+          Dubai's AI-powered school discovery platform.
+        </p>
+      </div>
+    `,
+  });
+}

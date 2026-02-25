@@ -350,6 +350,39 @@ CREATE TABLE IF NOT EXISTS pipeline_v2_school_state (
 );
 
 -- ============================================
+-- ENQUIRY USER LINKING
+-- ============================================
+-- Links enquiries to authenticated users
+ALTER TABLE enquiries ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id);
+
+-- ============================================
+-- USER NOTIFICATION PREFERENCES
+-- ============================================
+CREATE TABLE IF NOT EXISTS user_notification_prefs (
+  user_id                     UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  enquiry_no_response_days    INTEGER DEFAULT 7,
+  email_enquiry_updates       BOOLEAN DEFAULT true,
+  email_school_news           BOOLEAN DEFAULT false,
+  email_weekly_digest         BOOLEAN DEFAULT false,
+  created_at                  TIMESTAMP DEFAULT NOW(),
+  updated_at                  TIMESTAMP DEFAULT NOW()
+);
+
+-- ============================================
+-- ENQUIRY NOTIFICATIONS
+-- ============================================
+CREATE TABLE IF NOT EXISTS enquiry_notifications (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  enquiry_id      UUID REFERENCES enquiries(id) ON DELETE CASCADE,
+  user_id         UUID REFERENCES users(id) ON DELETE CASCADE,
+  type            TEXT NOT NULL,  -- 'no_response_reminder'
+  message         TEXT,
+  sent_at         TIMESTAMP,
+  read_at         TIMESTAMP,
+  created_at      TIMESTAMP DEFAULT NOW()
+);
+
+-- ============================================
 -- INDEXES
 -- ============================================
 CREATE INDEX IF NOT EXISTS idx_schools_area ON schools(area);
@@ -364,6 +397,10 @@ CREATE INDEX IF NOT EXISTS idx_saved_schools_user ON saved_schools(user_id);
 CREATE INDEX IF NOT EXISTS idx_search_logs_created ON search_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_schools_last_scraped ON schools(last_scraped_at);
 CREATE INDEX IF NOT EXISTS idx_schools_is_active ON schools(is_active);
+CREATE INDEX IF NOT EXISTS idx_enquiries_user ON enquiries(user_id);
+CREATE INDEX IF NOT EXISTS idx_enquiries_parent_email ON enquiries(parent_email);
+CREATE INDEX IF NOT EXISTS idx_enquiry_notifications_user ON enquiry_notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_enquiry_notifications_enquiry ON enquiry_notifications(enquiry_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_sentiment ON reviews(sentiment);
 CREATE INDEX IF NOT EXISTS idx_pipeline_v2_runs_job_started ON pipeline_v2_runs(job_name, started_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pipeline_v2_snapshots_type_created ON pipeline_v2_snapshots(snapshot_type, created_at DESC);
