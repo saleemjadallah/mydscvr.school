@@ -78,7 +78,7 @@ export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCard
     >
       <Link
         href={`/schools/${school.slug}`}
-        className="group relative flex gap-5 rounded-2xl bg-white p-5 transition-all"
+        className="group relative flex flex-col sm:flex-row sm:gap-5 rounded-2xl bg-white overflow-hidden sm:overflow-visible sm:p-5 transition-all"
         style={{
           boxShadow: "var(--shadow-card)",
         }}
@@ -89,22 +89,23 @@ export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCard
           e.currentTarget.style.boxShadow = "var(--shadow-card)";
         }}
       >
-        {/* ---- Left: Photo with heart overlay ---- */}
+        {/* ---- Photo section ---- */}
+        {/* Mobile: full-width banner | Desktop: 128px square */}
         <div className="relative flex-shrink-0">
           {heroPhoto ? (
-            <div className="relative overflow-hidden rounded-xl">
+            <div className="relative overflow-hidden sm:rounded-xl">
               <Image
                 src={heroPhoto}
                 alt={school.name}
-                width={128}
-                height={128}
-                className="size-32 rounded-xl object-cover transition-transform duration-300 group-hover:scale-105"
+                width={400}
+                height={200}
+                className="h-40 w-full object-cover sm:size-32 sm:rounded-xl transition-transform duration-300 group-hover:scale-105"
               />
-              <div className="pointer-events-none absolute inset-0 rounded-xl bg-gradient-to-t from-black/10 to-transparent" />
+              <div className="pointer-events-none absolute inset-0 sm:rounded-xl bg-gradient-to-t from-black/20 via-transparent to-transparent sm:from-black/10" />
             </div>
           ) : (
             <div
-              className="flex size-32 items-center justify-center rounded-xl"
+              className="flex h-40 w-full items-center justify-center sm:size-32 sm:rounded-xl"
               style={{
                 background: "linear-gradient(135deg, rgba(255,107,53,0.1), rgba(168,85,247,0.1))",
               }}
@@ -112,7 +113,8 @@ export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCard
               <BookOpen className="size-10 text-[#FF6B35]/60" />
             </div>
           )}
-          {/* Heart icon on photo */}
+
+          {/* Heart icon */}
           <motion.button
             type="button"
             aria-label={isSaved ? "Remove from saved" : "Save school"}
@@ -127,20 +129,32 @@ export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCard
               }
               onToggleSave?.(school.id);
             }}
-            className={`absolute right-1.5 top-1.5 z-10 rounded-full p-1.5 transition-colors ${
+            className={`absolute right-2 top-2 sm:right-1.5 sm:top-1.5 z-10 rounded-full p-2 sm:p-1.5 transition-colors ${
               isSaved
                 ? "bg-white/90 text-[#FF6B35]"
                 : "bg-white/70 text-gray-400 hover:bg-white/90 hover:text-[#FF6B35]"
             }`}
           >
-            <Heart className={`size-4 ${isSaved ? "fill-[#FF6B35]" : ""}`} />
+            <Heart className={`size-5 sm:size-4 ${isSaved ? "fill-[#FF6B35]" : ""}`} />
           </motion.button>
+
+          {/* Mobile-only: KHDA badge overlay on photo */}
+          {school.khda_rating && khdaColors && (
+            <div className="absolute bottom-2 left-2 sm:hidden">
+              <Badge
+                variant="secondary"
+                className={`${khdaColors.bg} ${khdaColors.text} border-0 text-[11px] px-2 py-0.5 shadow-sm backdrop-blur-sm`}
+              >
+                KHDA: {school.khda_rating}
+              </Badge>
+            </div>
+          )}
         </div>
 
-        {/* ---- Center: Details ---- */}
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          {/* Badges row */}
-          <div className="flex flex-wrap items-center gap-1.5">
+        {/* ---- Details section ---- */}
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-3.5 sm:p-0 sm:gap-2">
+          {/* Desktop-only badges row */}
+          <div className="hidden sm:flex flex-wrap items-center gap-1.5">
             {school.is_featured && (
               <Badge
                 className="border-0 text-[10px] px-2 py-0.5 text-white font-semibold"
@@ -161,30 +175,70 @@ export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCard
             )}
           </div>
 
-          {/* School name */}
-          <h3 className="truncate text-base font-bold text-gray-900 group-hover:text-[#FF6B35] transition-colors">
+          {/* Mobile: Name + Featured badge row */}
+          <div className="flex items-start justify-between gap-2 sm:hidden">
+            <h3 className="text-[15px] font-bold leading-snug text-gray-900 group-hover:text-[#FF6B35] transition-colors">
+              {school.name}
+            </h3>
+            {school.is_featured && (
+              <Badge
+                className="flex-shrink-0 border-0 text-[10px] px-2 py-0.5 text-white font-semibold"
+                style={{
+                  background: "linear-gradient(135deg, #FF6B35, #FBBF24)",
+                }}
+              >
+                Featured
+              </Badge>
+            )}
+          </div>
+
+          {/* Desktop: School name */}
+          <h3 className="hidden sm:block truncate text-base font-bold text-gray-900 group-hover:text-[#FF6B35] transition-colors">
             {school.name}
           </h3>
 
-          {/* Area */}
+          {/* Mobile: compact info row (area + rating) */}
+          <div className="flex items-center gap-3 text-[13px] text-gray-500 sm:hidden">
+            {school.area && (
+              <span className="flex items-center gap-1 min-w-0">
+                <MapPin className="size-3.5 flex-shrink-0 text-gray-400" />
+                <span className="truncate">{school.area}</span>
+              </span>
+            )}
+            {school.google_rating != null && (
+              <span className="flex items-center gap-1 flex-shrink-0">
+                <Star className="size-3.5 fill-amber-400 text-amber-400" />
+                <span className="font-medium text-gray-700">
+                  {Number(school.google_rating).toFixed(1)}
+                </span>
+                {school.google_review_count != null && (
+                  <span className="text-gray-400">
+                    ({Number(school.google_review_count).toLocaleString()})
+                  </span>
+                )}
+              </span>
+            )}
+          </div>
+
+          {/* Desktop: Area */}
           {school.area && (
-            <div className="flex items-center gap-1 text-sm text-gray-500">
+            <div className="hidden sm:flex items-center gap-1 text-sm text-gray-500">
               <MapPin className="size-3.5 flex-shrink-0" />
               <span className="truncate">{school.area}</span>
             </div>
           )}
 
-          {/* Distance label */}
+          {/* Distance label (both) */}
           {school.distance_label && (
-            <div className="flex items-center gap-1 text-sm text-[#FF6B35] font-medium">
+            <div className="flex items-center gap-1 text-[13px] sm:text-sm text-[#FF6B35] font-medium">
               <Navigation className="size-3.5 flex-shrink-0" />
               {school.distance_label}
             </div>
           )}
 
-          {/* Google rating */}
+          {/* Desktop: Google rating */}
           {school.google_rating != null && (
-            <div className="flex items-center gap-1 text-sm">
+            <div className="hidden sm:flex items-center gap-1 text-sm">
               <Star className="size-3.5 flex-shrink-0 fill-amber-400 text-amber-400" />
               <span className="font-medium text-gray-700">
                 {Number(school.google_rating).toFixed(1)}
@@ -197,9 +251,32 @@ export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCard
             </div>
           )}
 
-          {/* Curriculum badges */}
+          {/* Mobile: badges row (curriculum + SEN) */}
+          {((school.curriculum && school.curriculum.length > 0) || school.has_sen_support) && (
+            <div className="flex flex-wrap items-center gap-1.5 sm:hidden">
+              {school.curriculum?.map((c) => (
+                <Badge
+                  key={c}
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 text-gray-600"
+                >
+                  {c}
+                </Badge>
+              ))}
+              {school.has_sen_support && (
+                <Badge
+                  variant="secondary"
+                  className="bg-purple-100 text-purple-700 border-0 text-[10px] px-1.5 py-0"
+                >
+                  SEN Support
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Desktop: Curriculum badges */}
           {school.curriculum && school.curriculum.length > 0 && (
-            <div className="flex flex-wrap gap-1">
+            <div className="hidden sm:flex flex-wrap gap-1">
               {school.curriculum.map((c) => (
                 <Badge
                   key={c}
@@ -212,26 +289,63 @@ export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCard
             </div>
           )}
 
-          {/* SEN badge */}
+          {/* Desktop: SEN badge */}
           {school.has_sen_support && (
             <Badge
               variant="secondary"
-              className="w-fit bg-purple-100 text-purple-700 border-0 text-[10px] px-1.5 py-0"
+              className="hidden sm:inline-flex w-fit bg-purple-100 text-purple-700 border-0 text-[10px] px-1.5 py-0"
             >
               SEN Support
             </Badge>
           )}
 
-          {/* AI summary */}
+          {/* AI summary (desktop only — too verbose for mobile cards) */}
           {school.ai_summary && (
-            <p className="line-clamp-2 text-xs leading-relaxed text-gray-500 border-l-2 border-[#FF6B35]/20 pl-2.5">
+            <p className="hidden sm:block line-clamp-2 text-xs leading-relaxed text-gray-500 border-l-2 border-[#FF6B35]/20 pl-2.5">
               {school.ai_summary}
             </p>
           )}
+
+          {/* Mobile: fees + CTA row */}
+          <div className="flex items-center justify-between gap-3 mt-1.5 pt-2.5 border-t border-gray-100 sm:hidden">
+            <div className="min-w-0">
+              {(school.fee_min != null || school.fee_max != null) && (
+                <>
+                  <p className="text-[10px] text-gray-400 leading-none mb-0.5">Annual fees</p>
+                  <p className="text-[13px] font-semibold text-gray-900 truncate">
+                    {school.fee_min != null && school.fee_max != null ? (
+                      <>
+                        AED {formatFee(school.fee_min)} &ndash; {formatFee(school.fee_max)}
+                      </>
+                    ) : school.fee_min != null ? (
+                      <>From AED {formatFee(school.fee_min)}</>
+                    ) : school.fee_max != null ? (
+                      <>Up to AED {formatFee(school.fee_max)}</>
+                    ) : null}
+                  </p>
+                </>
+              )}
+            </div>
+            <button
+              type="button"
+              className="flex-shrink-0 rounded-lg px-4 py-2 text-xs font-semibold text-white transition-all hover:opacity-90"
+              style={{
+                background: "linear-gradient(135deg, #FF6B35, #F59E0B)",
+                boxShadow: "0 2px 8px rgba(255, 107, 53, 0.25)",
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.location.href = `/schools/${school.slug}#enquire`;
+              }}
+            >
+              Enquire Now
+            </button>
+          </div>
         </div>
 
-        {/* ---- Right: Fees & CTA ---- */}
-        <div className="flex flex-shrink-0 flex-col items-end justify-between">
+        {/* ---- Right: Fees & CTA (desktop only) ---- */}
+        <div className="hidden sm:flex flex-shrink-0 flex-col items-end justify-between">
           <div className="text-right">
             {(school.fee_min != null || school.fee_max != null) && (
               <>

@@ -105,18 +105,25 @@ async function fetchNurseries(
 
 function NurseryCardSkeleton() {
   return (
-    <div className="flex gap-4 rounded-xl border bg-white p-4 shadow-sm animate-pulse">
-      <div className="size-28 flex-shrink-0 rounded-lg bg-gray-200" />
-      <div className="flex flex-1 flex-col gap-2">
-        <div className="h-4 w-24 rounded bg-gray-200" />
-        <div className="h-5 w-48 rounded bg-gray-200" />
-        <div className="h-3 w-32 rounded bg-gray-200" />
-        <div className="h-3 w-40 rounded bg-gray-200" />
-        <div className="mt-auto h-8 w-full rounded bg-gray-100" />
-      </div>
-      <div className="flex flex-col items-end justify-between">
-        <div className="h-8 w-24 rounded bg-gray-200" />
-        <div className="h-8 w-20 rounded bg-gray-200" />
+    <div className="rounded-2xl bg-white overflow-hidden sm:overflow-visible sm:p-5 animate-pulse" style={{ boxShadow: 'var(--shadow-card)' }}>
+      <div className="flex flex-col sm:flex-row sm:gap-5">
+        <div className="h-40 w-full bg-gray-200 sm:size-32 sm:flex-shrink-0 sm:rounded-xl sm:h-32" />
+        <div className="flex flex-1 flex-col gap-2.5 p-3.5 sm:p-0">
+          <div className="h-5 w-3/4 rounded bg-gray-200" />
+          <div className="h-3.5 w-1/2 rounded bg-gray-200" />
+          <div className="flex gap-1.5">
+            <div className="h-5 w-16 rounded bg-gray-200" />
+            <div className="h-5 w-14 rounded bg-gray-200" />
+          </div>
+          <div className="flex items-center justify-between pt-2.5 border-t border-gray-100 sm:border-0 sm:pt-0 sm:mt-auto">
+            <div className="h-4 w-32 rounded bg-gray-200" />
+            <div className="h-8 w-24 rounded-lg bg-gray-200" />
+          </div>
+        </div>
+        <div className="hidden sm:flex flex-col items-end justify-between">
+          <div className="h-8 w-24 rounded bg-gray-200" />
+          <div className="h-8 w-20 rounded bg-gray-200" />
+        </div>
       </div>
     </div>
   );
@@ -372,7 +379,7 @@ function NurseriesPageContent() {
       {/* ================================================================ */}
       {/* Body                                                             */}
       {/* ================================================================ */}
-      <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6">
+      <div className="mx-auto flex max-w-7xl gap-6 px-3 py-4 sm:px-4 sm:py-6">
         {/* Sidebar */}
         <NurseryFilters
           filters={filters}
@@ -394,19 +401,17 @@ function NurseriesPageContent() {
         {/* Main */}
         <main className="min-w-0 flex-1">
           {/* Results heading */}
-          <div className="mb-4 flex items-baseline justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
-                {isAISearch
-                  ? `Nursery results for "${queryParam}"`
-                  : 'All Nurseries in Dubai'}
-              </h1>
-              {!activeQuery.isLoading && (
-                <p className="mt-0.5 text-sm text-gray-500">
-                  {total} {total === 1 ? 'nursery' : 'nurseries'} found
-                </p>
-              )}
-            </div>
+          <div className="mb-3 sm:mb-4">
+            <h1 className="text-lg font-bold text-gray-900 sm:text-2xl">
+              {isAISearch
+                ? `Nursery results for "${queryParam}"`
+                : 'All Nurseries in Dubai'}
+            </h1>
+            {!activeQuery.isLoading && (
+              <p className="mt-0.5 text-xs sm:text-sm text-gray-500">
+                {total} {total === 1 ? 'nursery' : 'nurseries'} found
+              </p>
+            )}
           </div>
 
           {/* AI explanation */}
@@ -532,7 +537,7 @@ function NurseriesPageContent() {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {schools.map((school) => (
                     <SchoolCard
                       key={school.id}
