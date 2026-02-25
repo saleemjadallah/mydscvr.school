@@ -12,27 +12,34 @@ export async function GET() {
   }
 
   try {
-    // Get internal user id + email
+    // Get internal user id, email, and name
     const userResult = await db.query(
       `INSERT INTO users (clerk_id, email, name)
        VALUES ($1, $1, $1)
        ON CONFLICT (clerk_id) DO UPDATE SET updated_at = NOW()
-       RETURNING id, email`,
+       RETURNING id, email, name`,
       [userId]
     );
     const internalUserId = userResult.rows[0].id;
     const userEmail = userResult.rows[0].email;
+    const userName = userResult.rows[0].name;
 
-    // Get user's notification prefs for no-response threshold
-    const prefsResult = await db.query(
+    // Get user's notification prefs (upsert defaults, then always SELECT)
+    await db.query(
       `INSERT INTO user_notification_prefs (user_id)
        VALUES ($1)
-       ON CONFLICT (user_id) DO NOTHING
-       RETURNING enquiry_no_response_days`,
+       ON CONFLICT (user_id) DO NOTHING`,
+      [internalUserId]
+    );
+    const prefsResult = await db.query(
+      `SELECT enquiry_no_response_days, email_enquiry_updates
+       FROM user_notification_prefs WHERE user_id = $1`,
       [internalUserId]
     );
     const noResponseDays =
       prefsResult.rows[0]?.enquiry_no_response_days ?? 7;
+    const emailEnquiryUpdates =
+      prefsResult.rows[0]?.email_enquiry_updates ?? true;
 
     // Fetch all dashboard data in parallel
     const [savedCount, enquiries, recentSearches, statusCounts, unreadCount] =
@@ -127,16 +134,18 @@ export async function GET() {
             [enquiry.id, internalUserId, msg]
           );
 
-          // Send email reminder (fire and forget)
-          sendNoResponseReminderEmail({
-            to: userEmail,
-            parentName: userId,
-            schoolName: enquiry.school_name as string,
-            daysWaiting: enquiry.days_waiting as number,
-            enquiryId: enquiry.id as string,
-          }).catch((err: unknown) =>
-            console.error("No-response email error:", err)
-          );
+          // Send email reminder only if user has email_enquiry_updates enabled
+          if (emailEnquiryUpdates) {
+            sendNoResponseReminderEmail({
+              to: userEmail,
+              parentName: userName || "there",
+              schoolName: enquiry.school_name as string,
+              daysWaiting: enquiry.days_waiting as number,
+              enquiryId: enquiry.id as string,
+            }).catch((err: unknown) =>
+              console.error("No-response email error:", err)
+            );
+          }
         }
       }
     }

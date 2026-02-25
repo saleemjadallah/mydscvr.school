@@ -224,6 +224,9 @@ export default function NotificationsTab() {
             <div>
               <Label className="text-sm font-medium text-gray-900">
                 School news
+                <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">
+                  Coming soon
+                </span>
               </Label>
               <p className="text-xs text-gray-500">
                 News and updates about your saved schools.
@@ -241,6 +244,9 @@ export default function NotificationsTab() {
             <div>
               <Label className="text-sm font-medium text-gray-900">
                 Weekly digest
+                <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">
+                  Coming soon
+                </span>
               </Label>
               <p className="text-xs text-gray-500">
                 A weekly summary of your activity and new schools matching your
