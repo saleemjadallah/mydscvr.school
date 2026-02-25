@@ -14,6 +14,7 @@ import StrengthsComparison from './StrengthsComparison';
 import AIComparisonCard from './AIComparisonCard';
 import ComparisonTable from './ComparisonTable';
 import CompareActionBar from './CompareActionBar';
+import MapView from '@/components/MapView';
 import type { CompareResponse } from '@/types';
 
 interface ComparisonResultsProps {
@@ -49,6 +50,9 @@ export default function ComparisonResults({ data }: ComparisonResultsProps) {
             </TabsTrigger>
             <TabsTrigger value="facilities" className="text-xs sm:text-sm whitespace-nowrap">
               Facilities
+            </TabsTrigger>
+            <TabsTrigger value="location" className="text-xs sm:text-sm whitespace-nowrap">
+              Location
             </TabsTrigger>
             <TabsTrigger value="ai" className="text-xs sm:text-sm whitespace-nowrap">
               AI Analysis
@@ -154,6 +158,39 @@ export default function ComparisonResults({ data }: ComparisonResultsProps) {
             >
               <AnimatedSection>
                 <FacilitiesGrid schools={schools} />
+              </AnimatedSection>
+            </motion.div>
+          </AnimatePresence>
+        </TabsContent>
+
+        {/* ─── Location Tab ─── */}
+        <TabsContent value="location" className="compare-tab-content">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key="location"
+              variants={tabCrossfade}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="pt-4"
+            >
+              <AnimatedSection>
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <h3 className="mb-4 text-sm font-semibold text-gray-700">
+                    School Locations
+                  </h3>
+                  <MapView
+                    schools={schools.map((s) => ({
+                      latitude: s.latitude,
+                      longitude: s.longitude,
+                      name: s.name,
+                      slug: s.slug,
+                      khda_rating: s.khda_rating,
+                      fee_min: s.fee_min,
+                      fee_max: s.fee_max,
+                    }))}
+                  />
+                </div>
               </AnimatedSection>
             </motion.div>
           </AnimatePresence>
