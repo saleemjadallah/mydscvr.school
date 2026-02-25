@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   SignInButton,
+  SignUpButton,
   SignedIn,
   SignedOut,
   UserButton,
@@ -111,15 +112,23 @@ function Header() {
             <SignInButton mode="redirect">
               <button
                 type="button"
+                className="rounded-full px-5 py-2 text-sm font-semibold text-gray-700 transition-all hover:text-gray-900 hover:bg-gray-100"
+              >
+                Sign In
+              </button>
+            </SignInButton>
+            <SignUpButton mode="redirect">
+              <button
+                type="button"
                 className="rounded-full px-5 py-2 text-sm font-semibold text-white transition-all hover:opacity-90 btn-glow"
                 style={{
                   background:
                     "linear-gradient(135deg, #FF6B35, #F59E0B)",
                 }}
               >
-                Sign In
+                Register
               </button>
-            </SignInButton>
+            </SignUpButton>
           </SignedOut>
           <SignedIn>
             <nav className="hidden items-center gap-1 md:flex">
@@ -245,18 +254,28 @@ function Header() {
                 {/* Mobile CTA */}
                 <div className="border-t px-6 py-5">
                   <SignedOut>
-                    <SignInButton mode="redirect">
-                      <button
-                        type="button"
-                        className="w-full rounded-xl px-4 py-3 text-sm font-semibold text-white btn-glow"
-                        style={{
-                          background:
-                            "linear-gradient(135deg, #FF6B35, #F59E0B)",
-                        }}
-                      >
-                        Sign In
-                      </button>
-                    </SignInButton>
+                    <div className="flex flex-col gap-3">
+                      <SignUpButton mode="redirect">
+                        <button
+                          type="button"
+                          className="w-full rounded-xl px-4 py-3 text-sm font-semibold text-white btn-glow"
+                          style={{
+                            background:
+                              "linear-gradient(135deg, #FF6B35, #F59E0B)",
+                          }}
+                        >
+                          Register
+                        </button>
+                      </SignUpButton>
+                      <SignInButton mode="redirect">
+                        <button
+                          type="button"
+                          className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                        >
+                          Sign In
+                        </button>
+                      </SignInButton>
+                    </div>
                   </SignedOut>
                 </div>
               </div>
