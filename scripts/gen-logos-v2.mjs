@@ -1,6 +1,7 @@
 import fs from 'fs';
 
-const API_KEY = 'AIzaSyAXVU8wEHHymCh-oZdgv4UJtLb8w2Q67us';
+const API_KEY = process.env.GEMINI_API_KEY;
+if (!API_KEY) { console.error('Set GEMINI_API_KEY env var'); process.exit(1); }
 const MODEL = 'gemini-3-pro-image-preview';
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
 
