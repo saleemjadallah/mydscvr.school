@@ -3,11 +3,17 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import {
+  SignInButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+  useAuth,
+} from "@clerk/nextjs";
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { Menu } from "lucide-react";
+import { Menu, Bell } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -138,6 +144,7 @@ function Header() {
                 );
               })}
             </nav>
+            <NotificationBell />
             <UserButton
               afterSignOutUrl="/"
               appearance={{
@@ -258,6 +265,43 @@ function Header() {
         </div>
       </div>
     </motion.header>
+  );
+}
+
+function NotificationBell() {
+  const { isSignedIn } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+
+    async function fetchCount() {
+      try {
+        const res = await fetch("/api/user/notifications");
+        if (!res.ok) return;
+        const data = await res.json();
+        setUnreadCount(data.unread_count ?? 0);
+      } catch {
+        // Silently fail — bell just won't show a count
+      }
+    }
+
+    fetchCount();
+  }, [isSignedIn]);
+
+  return (
+    <Link
+      href="/dashboard"
+      className="relative rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+      title="Notifications"
+    >
+      <Bell className="size-5" />
+      {unreadCount > 0 && (
+        <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-[#FF6B35] text-[9px] font-bold text-white">
+          {unreadCount > 9 ? "9+" : unreadCount}
+        </span>
+      )}
+    </Link>
   );
 }
 

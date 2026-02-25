@@ -2,9 +2,10 @@
 
 export const dynamic = "force-dynamic";
 
+import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
-import { LogIn, User, Settings, Bell } from "lucide-react";
+import { LogIn, User, Settings, Bell, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ProfileTab from "@/components/profile/ProfileTab";
@@ -45,7 +46,16 @@ export default function ProfilePage() {
         </SignedOut>
 
         <SignedIn>
-          <ProfileContent />
+          <Suspense
+            fallback={
+              <div className="flex flex-col items-center justify-center py-20">
+                <Loader2 className="size-8 animate-spin text-[#FF6B35]" />
+                <p className="mt-3 text-sm text-gray-500">Loading...</p>
+              </div>
+            }
+          >
+            <ProfileContent />
+          </Suspense>
         </SignedIn>
       </div>
     </div>
@@ -74,7 +84,10 @@ function ProfileContent() {
       </div>
 
       <Tabs value={currentTab} onValueChange={handleTabChange}>
-        <TabsList variant="line" className="mb-8 w-full justify-start gap-0 border-b border-gray-200">
+        <TabsList
+          variant="line"
+          className="mb-8 w-full justify-start gap-0 border-b border-gray-200"
+        >
           {TABS.map(({ value, label, icon: Icon }) => (
             <TabsTrigger
               key={value}
