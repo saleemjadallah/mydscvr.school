@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { resolveHeroPhoto } from "@/lib/school-utils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,6 +45,7 @@ interface DashboardEnquiry {
   school_area: string | null;
   khda_rating: string | null;
   google_photos: string[] | null;
+  hero_photo_url?: string | null;
   days_waiting?: number;
 }
 
@@ -504,7 +506,7 @@ function QuickAction({
 }
 
 function EnquiryCard({ enquiry }: { enquiry: DashboardEnquiry }) {
-  const heroPhoto = enquiry.google_photos?.[0] ?? null;
+  const heroPhoto = resolveHeroPhoto(undefined, enquiry.google_photos, enquiry.hero_photo_url);
   const isPending =
     (enquiry.status === "new" || enquiry.status === "sent_to_school") &&
     (enquiry.days_waiting ?? 0) >= 7;

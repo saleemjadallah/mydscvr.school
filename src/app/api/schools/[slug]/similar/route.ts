@@ -30,6 +30,7 @@ export async function GET(
     const others = await db.query(
       `SELECT s.id, s.slug, s.name, s.khda_rating, s.fee_min, s.fee_max,
               s.area, s.curriculum, s.google_rating, s.google_photos, s.ai_summary,
+              (SELECT sp.r2_url FROM school_photos sp WHERE sp.school_id = s.id AND sp.is_active = true ORDER BY sp.sort_order LIMIT 1) as hero_photo_url,
               se.embedding
        FROM schools s
        JOIN school_embeddings se ON se.school_id = s.id

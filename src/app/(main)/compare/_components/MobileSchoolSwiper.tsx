@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Star, MapPin, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { SCHOOL_COLORS, KHDA_COLOR_MAP } from '@/lib/constants';
-import { resolvePhoto, feeLabel } from '@/lib/school-utils';
+import { resolveHeroPhoto, feeLabel } from '@/lib/school-utils';
 import type { CompareSchool } from '@/types';
 
 interface MobileSchoolSwiperProps {
@@ -27,7 +27,7 @@ export default function MobileSchoolSwiper({ schools }: MobileSchoolSwiperProps)
 
   const school = schools[activeIndex];
   const color = SCHOOL_COLORS[activeIndex % SCHOOL_COLORS.length];
-  const photo = resolvePhoto(school.google_photos);
+  const photo = resolveHeroPhoto(school.photos, school.google_photos, school.hero_photo_url);
   const khdaColors = school.khda_rating
     ? KHDA_COLOR_MAP[school.khda_rating]
     : null;

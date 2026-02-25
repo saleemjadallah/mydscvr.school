@@ -89,8 +89,26 @@ export interface School {
   khda_reports?: KHDAReport[];
   reviews?: Review[];
   fee_history?: FeeHistory[];
+  photos?: SchoolPhoto[];
+  hero_photo_url?: string | null;
   enquiry_count_30d?: number;
   semantic_score?: number;
+}
+
+// ============================================
+// SCHOOL PHOTO (R2-hosted)
+// ============================================
+export interface SchoolPhoto {
+  id: string;
+  school_id: string;
+  r2_url: string;
+  photo_type: "hero" | "gallery";
+  source: string;
+  width: number | null;
+  height: number | null;
+  sort_order: number;
+  alt_text: string | null;
+  is_active: boolean;
 }
 
 export type KHDARating =
@@ -378,6 +396,8 @@ export interface CompareSchool {
   ai_strengths: string[] | null;
   ai_considerations: string[] | null;
   description: string | null;
+  photos?: SchoolPhoto[];
+  hero_photo_url?: string | null;
 }
 
 export interface FeeHistoryEntry {

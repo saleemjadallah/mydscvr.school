@@ -55,6 +55,7 @@ export async function GET() {
           `SELECT e.id, e.status, e.created_at, e.child_grade, e.message,
                   s.name as school_name, s.slug as school_slug, s.area as school_area,
                   s.khda_rating, s.google_photos,
+                  (SELECT sp.r2_url FROM school_photos sp WHERE sp.school_id = s.id AND sp.is_active = true ORDER BY sp.sort_order LIMIT 1) as hero_photo_url,
                   EXTRACT(DAY FROM NOW() - e.created_at)::int as days_waiting
            FROM enquiries e
            JOIN schools s ON s.id = e.school_id
@@ -178,6 +179,7 @@ export async function GET() {
             child_grade: sanitizeTextValue(row.child_grade),
             message: sanitizeTextValue(row.message),
             google_photos: photos,
+            hero_photo_url: row.hero_photo_url ?? null,
           },
         ];
       }

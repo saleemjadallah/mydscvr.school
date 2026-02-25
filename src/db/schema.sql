@@ -430,3 +430,27 @@ CREATE INDEX IF NOT EXISTS idx_outbound_clicks_school ON outbound_clicks(school_
 CREATE INDEX IF NOT EXISTS idx_outbound_clicks_created ON outbound_clicks(created_at);
 CREATE INDEX IF NOT EXISTS idx_outbound_clicks_school_type_created
   ON outbound_clicks(school_id, click_type, created_at DESC);
+
+-- ============================================
+-- SCHOOL PHOTOS TABLE (R2-hosted images)
+-- ============================================
+CREATE TABLE IF NOT EXISTS school_photos (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  school_id   UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  r2_key      TEXT NOT NULL,
+  r2_url      TEXT NOT NULL,
+  photo_type  TEXT NOT NULL DEFAULT 'gallery',  -- 'hero', 'gallery'
+  source      TEXT NOT NULL,                    -- 'google_places', 'school_website', 'manual'
+  source_url  TEXT,
+  width       INTEGER,
+  height      INTEGER,
+  file_size   INTEGER,
+  sort_order  INTEGER NOT NULL DEFAULT 0,
+  alt_text    TEXT,
+  is_active   BOOLEAN NOT NULL DEFAULT true,
+  created_at  TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_school_photos_school ON school_photos(school_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_school_photos_r2_key ON school_photos(r2_key);

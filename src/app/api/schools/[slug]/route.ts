@@ -20,11 +20,19 @@ export async function GET(
         s.*,
         json_agg(DISTINCT kr.*) FILTER (WHERE kr.id IS NOT NULL) as khda_reports,
         json_agg(DISTINCT r.*) FILTER (WHERE r.id IS NOT NULL) as reviews,
-        json_agg(DISTINCT fh.*) FILTER (WHERE fh.id IS NOT NULL) as fee_history
+        json_agg(DISTINCT fh.*) FILTER (WHERE fh.id IS NOT NULL) as fee_history,
+        json_agg(DISTINCT jsonb_build_object(
+          'id', sp.id, 'school_id', sp.school_id, 'r2_url', sp.r2_url,
+          'photo_type', sp.photo_type, 'source', sp.source,
+          'width', sp.width, 'height', sp.height,
+          'sort_order', sp.sort_order, 'alt_text', sp.alt_text,
+          'is_active', sp.is_active
+        )) FILTER (WHERE sp.id IS NOT NULL) as photos
       FROM schools s
       LEFT JOIN khda_reports kr ON kr.school_id = s.id
       LEFT JOIN reviews r ON r.school_id = s.id
       LEFT JOIN fee_history fh ON fh.school_id = s.id
+      LEFT JOIN school_photos sp ON sp.school_id = s.id AND sp.is_active = true
       WHERE s.slug = $1 AND s.is_active = true
       GROUP BY s.id
     `,

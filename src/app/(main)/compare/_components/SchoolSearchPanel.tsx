@@ -10,7 +10,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { resolvePhoto } from '@/lib/school-utils';
+import { resolveHeroPhoto } from '@/lib/school-utils';
 import type { School } from '@/types';
 
 interface SchoolSearchPanelProps {
@@ -118,7 +118,7 @@ export default function SchoolSearchPanel({
 
         {results.map((school) => {
           const alreadySelected = selectedIds.has(school.id);
-          const photo = resolvePhoto(school.google_photos);
+          const photo = resolveHeroPhoto(school.photos, school.google_photos, school.hero_photo_url);
 
           return (
             <button

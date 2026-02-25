@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Star, BookOpen } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { resolveHeroPhoto } from '@/lib/school-utils';
 
 interface SimilarSchool {
   id: string;
@@ -17,6 +18,7 @@ interface SimilarSchool {
   fee_max: number | null;
   curriculum: string[];
   google_photos: string[] | string | null;
+  hero_photo_url?: string | null;
   similarity: number;
 }
 
@@ -27,17 +29,6 @@ const KHDA_COLOR_MAP: Record<string, { bg: string; text: string }> = {
   Acceptable: { bg: 'bg-orange-100', text: 'text-orange-700' },
   Weak: { bg: 'bg-red-100', text: 'text-red-700' },
 };
-
-function resolvePhotos(raw: string[] | string | null | undefined): string[] {
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw;
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
 
 function formatFee(amount: number): string {
   return new Intl.NumberFormat('en-AE', {
@@ -95,7 +86,7 @@ export default function SimilarSchools({ slug }: { slug: string }) {
       </h3>
       <div className="space-y-2">
         {schools.slice(0, 5).map((school) => {
-          const photos = resolvePhotos(school.google_photos);
+          const heroPhoto = resolveHeroPhoto(undefined, school.google_photos, school.hero_photo_url);
           const khdaColors = school.khda_rating
             ? KHDA_COLOR_MAP[school.khda_rating]
             : null;
@@ -107,9 +98,9 @@ export default function SimilarSchools({ slug }: { slug: string }) {
               className="flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-gray-50"
             >
               {/* Thumbnail */}
-              {photos[0] ? (
+              {heroPhoto ? (
                 <Image
-                  src={photos[0]}
+                  src={heroPhoto}
                   alt={school.name}
                   width={44}
                   height={44}

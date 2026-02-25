@@ -36,6 +36,7 @@ import GooglePlaceEmbed from "@/components/GooglePlaceEmbed";
 import AnimatedSection from "@/components/AnimatedSection";
 import SchoolContactCard from "@/components/SchoolContactCard";
 import SchoolMapsLink from "@/components/SchoolMapsLink";
+import { resolveSchoolPhotos, resolveHeroPhoto } from "@/lib/school-utils";
 import type { School, KHDAReport, FeeHistory, Review } from "@/types";
 
 // ---------------------------------------------------------------------------
@@ -84,17 +85,6 @@ const KHDA_COLOR_MAP: Record<
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function resolvePhotos(raw: string[] | string | null | undefined): string[] {
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw;
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
 
 function formatFee(amount: number): string {
   return new Intl.NumberFormat("en-AE", {
@@ -163,8 +153,7 @@ export async function generateMetadata({
     };
   }
 
-  const photos = resolvePhotos(school.google_photos);
-  const ogImage = photos[0] ?? undefined;
+  const ogImage = resolveHeroPhoto(school.photos, school.google_photos) ?? undefined;
   const description =
     school.ai_summary ?? school.meta_description ?? school.description ?? undefined;
 
@@ -202,7 +191,7 @@ export default async function SchoolProfilePage({
     notFound();
   }
 
-  const photos = resolvePhotos(school.google_photos);
+  const photos = resolveSchoolPhotos(school.photos, school.google_photos);
   const khdaColors = school.khda_rating
     ? KHDA_COLOR_MAP[school.khda_rating] ?? {
         bg: "bg-gray-100",

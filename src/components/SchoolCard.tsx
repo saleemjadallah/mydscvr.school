@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Star, MapPin, BookOpen, Heart, Navigation } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
+import { resolveHeroPhoto } from "@/lib/school-utils";
 import type { School } from "@/types";
 
 // ---------------------------------------------------------------------------
@@ -25,17 +26,6 @@ function formatFee(amount: number): string {
     style: "decimal",
     maximumFractionDigits: 0,
   }).format(amount);
-}
-
-function resolvePhotos(raw: string[] | string | null | undefined): string[] {
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw;
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -61,6 +51,7 @@ interface SchoolCardProps {
     | "has_sen_support"
     | "is_featured"
   > & {
+    hero_photo_url?: string | null;
     distance_km?: number;
     distance_label?: string;
   };
@@ -69,8 +60,7 @@ interface SchoolCardProps {
 }
 
 export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCardProps) {
-  const photos = resolvePhotos(school.google_photos as string[] | string | null);
-  const heroPhoto = photos[0] ?? null;
+  const heroPhoto = resolveHeroPhoto(undefined, school.google_photos, school.hero_photo_url);
   const khdaColors = school.khda_rating
     ? KHDA_COLOR_MAP[school.khda_rating] ?? { bg: "bg-gray-100", text: "text-gray-700" }
     : null;

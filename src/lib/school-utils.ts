@@ -1,4 +1,5 @@
 import { KHDA_NUMERIC, FACILITY_FEATURES } from "./constants";
+import type { SchoolPhoto } from "@/types";
 
 // ---------------------------------------------------------------------------
 // Fee formatting — single source of truth
@@ -37,15 +38,92 @@ export function formatFeeRange(
 }
 
 // ---------------------------------------------------------------------------
-// Photo resolver — pick best available photo
+// Photo resolvers — centralized, R2-first with legacy fallback
 // ---------------------------------------------------------------------------
 
+/**
+ * Check if a string looks like a real image URL (not a Google Places resource name).
+ */
+function isImageUrl(val: string): boolean {
+  return val.startsWith("http://") || val.startsWith("https://");
+}
+
+/**
+ * Parse legacy google_photos which may be a JSON string or array.
+ * Only returns entries that look like actual URLs.
+ */
+function parseLegacyPhotos(raw: string[] | string | null | undefined): string[] {
+  if (!raw) return [];
+  let arr: string[];
+  if (Array.isArray(raw)) {
+    arr = raw;
+  } else {
+    try {
+      const parsed = JSON.parse(raw);
+      arr = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return arr.filter(
+    (p): p is string => typeof p === "string" && p.trim().length > 0 && isImageUrl(p)
+  );
+}
+
+/**
+ * Resolve all available photos for a school, R2-hosted first.
+ * Priority: school_photos (R2) → legacy google_photos (only actual URLs) → empty.
+ */
+export function resolveSchoolPhotos(
+  photos?: SchoolPhoto[] | null,
+  legacyPhotos?: string[] | string | null,
+): string[] {
+  // Prefer R2-hosted photos
+  if (photos && photos.length > 0) {
+    return photos
+      .filter((p) => p.is_active)
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((p) => p.r2_url);
+  }
+  // Fallback to legacy google_photos (only if they look like URLs)
+  return parseLegacyPhotos(legacyPhotos);
+}
+
+/**
+ * Resolve the hero (primary) photo for a school.
+ * Accepts either structured photos or a pre-resolved hero_photo_url.
+ */
+export function resolveHeroPhoto(
+  photos?: SchoolPhoto[] | null,
+  legacyPhotos?: string[] | string | null,
+  heroPhotoUrl?: string | null,
+): string | null {
+  // Direct hero URL (from subquery in list/search APIs)
+  if (heroPhotoUrl && isImageUrl(heroPhotoUrl)) return heroPhotoUrl;
+  // R2-hosted photos
+  if (photos && photos.length > 0) {
+    const hero = photos
+      .filter((p) => p.is_active)
+      .sort((a, b) => a.sort_order - b.sort_order)[0];
+    if (hero) return hero.r2_url;
+  }
+  // Legacy fallback
+  const legacy = parseLegacyPhotos(legacyPhotos);
+  return legacy[0] ?? null;
+}
+
+/**
+ * @deprecated Use resolveHeroPhoto instead.
+ * Kept for backward compatibility with compare components.
+ */
 export function resolvePhoto(
   photos: string[] | null | undefined,
   index = 0
 ): string | null {
   if (!photos || photos.length === 0) return null;
-  return photos[Math.min(index, photos.length - 1)] ?? null;
+  const url = photos[Math.min(index, photos.length - 1)] ?? null;
+  if (url && isImageUrl(url)) return url;
+  return null;
 }
 
 // ---------------------------------------------------------------------------

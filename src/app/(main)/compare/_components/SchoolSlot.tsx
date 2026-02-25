@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Plus, X } from 'lucide-react';
 import { slotAppear } from '@/lib/animations';
 import { SCHOOL_COLORS } from '@/lib/constants';
-import { resolvePhoto } from '@/lib/school-utils';
+import { resolveHeroPhoto } from '@/lib/school-utils';
 import type { School } from '@/types';
 
 interface SchoolSlotProps {
@@ -35,7 +35,7 @@ export default function SchoolSlot({ school, index, onRemove, onAdd }: SchoolSlo
     );
   }
 
-  const photo = resolvePhoto(school.google_photos);
+  const photo = resolveHeroPhoto(school.photos, school.google_photos, school.hero_photo_url);
 
   return (
     <motion.div

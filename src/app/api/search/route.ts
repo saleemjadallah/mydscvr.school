@@ -165,6 +165,7 @@ Important distinctions:
         s.fee_min, s.fee_max, s.google_rating, s.google_review_count,
         s.ai_summary, s.ai_strengths, s.has_sen_support, s.latitude, s.longitude,
         s.google_photos, s.is_featured,
+        (SELECT sp.r2_url FROM school_photos sp WHERE sp.school_id = s.id AND sp.is_active = true ORDER BY sp.sort_order LIMIT 1) as hero_photo_url,
         se.embedding
       FROM schools s
       JOIN school_embeddings se ON se.school_id = s.id

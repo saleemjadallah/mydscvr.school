@@ -30,10 +30,12 @@ export async function GET(request: NextRequest) {
 
   // When text search is active, add a relevance score for sorting
   const hasTextSearch = q.length >= 2;
+  const heroPhotoSubquery = `(SELECT sp.r2_url FROM school_photos sp WHERE sp.school_id = s.id AND sp.is_active = true ORDER BY sp.sort_order LIMIT 1) as hero_photo_url`;
   const selectClause = hasTextSearch
     ? `
       s.*,
       COUNT(e.id) as enquiry_count_30d,
+      ${heroPhotoSubquery},
       CASE
         WHEN s.name ILIKE $1 THEN 100
         WHEN s.name ILIKE $2 THEN 80
@@ -46,7 +48,8 @@ export async function GET(request: NextRequest) {
     `
     : `
       s.*,
-      COUNT(e.id) as enquiry_count_30d
+      COUNT(e.id) as enquiry_count_30d,
+      ${heroPhotoSubquery}
     `;
 
   let query = `

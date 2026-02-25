@@ -31,6 +31,8 @@ const SCHOOL_COLUMNS = `
   ai_summary, ai_strengths, ai_considerations, description
 `;
 
+const HERO_PHOTO_SUBQUERY = `(SELECT sp.r2_url FROM school_photos sp WHERE sp.school_id = schools.id AND sp.is_active = true ORDER BY sp.sort_order LIMIT 1) as hero_photo_url`;
+
 /** Sort IDs to create a canonical cache key */
 function sortedKey(ids: string[]): string {
   return [...ids].sort().join(",");
@@ -117,7 +119,7 @@ export async function POST(request: NextRequest) {
     const [schoolResult, feeResult, khdaResult, reviewResult] =
       await Promise.all([
         // Query A: School data (lean columns)
-        db.query(`SELECT ${SCHOOL_COLUMNS} FROM schools WHERE id = ANY($1)`, [
+        db.query(`SELECT ${SCHOOL_COLUMNS}, ${HERO_PHOTO_SUBQUERY} FROM schools WHERE id = ANY($1)`, [
           resolvedIds,
         ]),
         // Query B: Fee history
