@@ -52,7 +52,7 @@ export default function RadarChart({ schools }: RadarChartProps) {
     <div className="flex flex-col items-center">
       <svg
         viewBox={`0 0 ${SIZE} ${SIZE}`}
-        className="h-[280px] w-[280px] md:h-[320px] md:w-[320px]"
+        className="h-auto w-full max-w-[280px] md:max-w-[320px]"
       >
         {/* Grid levels */}
         {Array.from({ length: LEVELS }).map((_, level) => {
@@ -147,16 +147,16 @@ export default function RadarChart({ schools }: RadarChartProps) {
       </svg>
 
       {/* Legend */}
-      <div className="mt-3 flex flex-wrap items-center justify-center gap-4">
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
         {schools.map((school, i) => {
           const color = SCHOOL_COLORS[i % SCHOOL_COLORS.length];
           return (
             <div key={school.id} className="flex items-center gap-1.5">
               <div
-                className="h-2.5 w-2.5 rounded-full"
+                className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
                 style={{ backgroundColor: color.hex }}
               />
-              <span className="text-xs font-medium text-gray-600 max-w-[120px] truncate">
+              <span className="text-[11px] sm:text-xs font-medium text-gray-600 max-w-[100px] sm:max-w-[140px] truncate">
                 {school.name}
               </span>
             </div>

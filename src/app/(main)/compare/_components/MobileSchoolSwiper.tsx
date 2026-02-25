@@ -62,7 +62,7 @@ export default function MobileSchoolSwiper({ schools }: MobileSchoolSwiperProps)
             style={{ borderTopWidth: '3px', borderTopColor: color.hex }}
           >
             {/* Photo */}
-            <div className="relative h-44 w-full overflow-hidden bg-gray-100">
+            <div className="relative h-36 sm:h-44 w-full overflow-hidden bg-gray-100">
               {photo ? (
                 <Image
                   src={photo}

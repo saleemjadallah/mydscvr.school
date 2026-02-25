@@ -185,7 +185,7 @@ export default function SchoolSearchPanel({
       {/* Mobile Sheet */}
       <div className="md:hidden">
         <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-          <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl p-0" showCloseButton={false}>
+          <SheetContent side="bottom" className="h-[75vh] max-h-[85vh] rounded-t-2xl p-0" showCloseButton={false}>
             <SheetHeader className="sr-only">
               <SheetTitle>Search Schools</SheetTitle>
             </SheetHeader>

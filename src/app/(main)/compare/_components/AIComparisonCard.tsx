@@ -76,7 +76,7 @@ export default function AIComparisonCard({
       }}
     >
       {/* Inner card with slight transparency */}
-      <div className="m-[1px] rounded-2xl bg-white/[0.97] p-5 sm:p-6">
+      <div className="m-[1px] rounded-2xl bg-white/[0.97] p-4 sm:p-6">
         {/* Header */}
         <div className="mb-4 flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-[#FF6B35]">
@@ -97,7 +97,7 @@ export default function AIComparisonCard({
 
         {/* Content */}
         {text ? (
-          <div className="prose prose-sm max-w-none text-gray-700 prose-headings:text-gray-900 prose-strong:text-gray-900 prose-li:marker:text-purple-500">
+          <div className="prose prose-xs sm:prose-sm max-w-none text-gray-700 prose-headings:text-gray-900 prose-strong:text-gray-900 prose-li:marker:text-purple-500 [&_table]:text-xs [&_th]:px-2 [&_th]:py-1.5 [&_td]:px-2 [&_td]:py-1.5 sm:[&_th]:px-3 sm:[&_th]:py-2.5 sm:[&_td]:px-3 sm:[&_td]:py-2.5">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{

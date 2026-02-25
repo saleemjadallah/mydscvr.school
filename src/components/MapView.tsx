@@ -197,7 +197,7 @@ export default function MapView({ schools, center }: MapViewProps) {
   return (
     <div
       ref={mapContainerRef}
-      className="h-[600px] w-full rounded-xl border shadow-sm"
+      className="h-[350px] sm:h-[450px] md:h-[600px] w-full rounded-xl border shadow-sm"
     />
   );
 }

@@ -31,18 +31,18 @@ export default function KHDARatingVisual({
             const schoolsAtRating = schools.filter((s) => s.khda_rating === rating);
 
             return (
-              <div key={rating} className="flex items-center gap-3">
-                <div className="w-24 flex-shrink-0 text-right">
+              <div key={rating} className="flex items-center gap-2 sm:gap-3">
+                <div className="w-20 sm:w-24 flex-shrink-0 text-right">
                   <Badge
-                    className={`${colors.bg} ${colors.text} border-0 text-[10px] font-semibold`}
+                    className={`${colors.bg} ${colors.text} border-0 text-[9px] sm:text-[10px] font-semibold`}
                   >
                     {rating}
                   </Badge>
                 </div>
 
-                <div className="relative flex-1">
-                  <div className="h-10 rounded-lg bg-gray-50 border border-gray-100">
-                    <div className="flex h-full items-center gap-2 px-3">
+                <div className="relative flex-1 min-w-0">
+                  <div className="min-h-[2.5rem] rounded-lg bg-gray-50 border border-gray-100">
+                    <div className="flex h-full flex-wrap items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5">
                       {schoolsAtRating.map((school) => {
                         const idx = schools.indexOf(school);
                         const color = SCHOOL_COLORS[idx % SCHOOL_COLORS.length];
@@ -52,14 +52,14 @@ export default function KHDARatingVisual({
                             initial={{ scale: 0, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             transition={{ delay: idx * 0.15, type: 'spring', stiffness: 500 }}
-                            className="flex items-center gap-1.5 rounded-full px-2.5 py-1"
+                            className="flex items-center gap-1 sm:gap-1.5 rounded-full px-2 py-0.5 sm:py-1"
                             style={{ backgroundColor: `${color.hex}15` }}
                           >
                             <div
-                              className="h-2 w-2 rounded-full"
+                              className="h-2 w-2 flex-shrink-0 rounded-full"
                               style={{ backgroundColor: color.hex }}
                             />
-                            <span className="text-[11px] font-medium text-gray-700 max-w-[100px] truncate">
+                            <span className="text-[10px] sm:text-[11px] font-medium text-gray-700 max-w-[70px] sm:max-w-[100px] truncate">
                               {school.name.split(' ').slice(0, 2).join(' ')}
                             </span>
                           </motion.div>
@@ -175,7 +175,47 @@ export default function KHDARatingVisual({
       {schools.some((s) => khdaReports[s.id]?.length > 0) && (
         <div>
           <h4 className="mb-4 text-sm font-semibold text-gray-700">Inspection History</h4>
-          <div className="overflow-x-auto">
+
+          {/* Mobile: stacked cards per year */}
+          <div className="space-y-2 sm:hidden">
+            {getReportYears(schools, khdaReports).map((year) => (
+              <div key={year} className="rounded-lg border border-gray-100 bg-white p-3">
+                <p className="mb-2 text-xs font-semibold text-gray-500">{year}</p>
+                <div className="space-y-1.5">
+                  {schools.map((s, i) => {
+                    const report = khdaReports[s.id]?.find((r) => r.year === year);
+                    return (
+                      <div key={s.id} className="flex items-center justify-between">
+                        <span
+                          className="text-xs font-medium truncate max-w-[120px]"
+                          style={{ color: SCHOOL_COLORS[i % SCHOOL_COLORS.length].hex }}
+                        >
+                          {s.name.split(' ').slice(0, 3).join(' ')}
+                        </span>
+                        {report ? (
+                          (() => {
+                            const colors = KHDA_COLOR_MAP[report.rating];
+                            return colors ? (
+                              <Badge className={`${colors.bg} ${colors.text} border-0 text-[10px]`}>
+                                {report.rating}
+                              </Badge>
+                            ) : (
+                              <span className="text-xs text-gray-600">{report.rating}</span>
+                            );
+                          })()
+                        ) : (
+                          <span className="text-xs text-gray-300">—</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-100">

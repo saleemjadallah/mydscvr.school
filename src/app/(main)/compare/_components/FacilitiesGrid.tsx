@@ -80,8 +80,56 @@ export default function FacilitiesGrid({ schools }: FacilitiesGridProps) {
         })}
       </div>
 
-      {/* Feature grid */}
-      <div className="overflow-x-auto">
+      {/* Feature grid — mobile: stacked cards */}
+      <div className="space-y-2 sm:hidden">
+        {FACILITY_FEATURES.map((feature, fi) => {
+          const Icon = ICON_MAP[feature.icon] ?? CheckCircle2;
+          return (
+            <div key={feature.key} className="rounded-lg border border-gray-100 bg-white p-3">
+              <div className="mb-2 flex items-center gap-2">
+                <Icon className="h-4 w-4 text-gray-400" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  {feature.label}
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                {schools.map((s, si) => {
+                  const has = s[feature.key as keyof CompareSchool] as boolean;
+                  return (
+                    <div key={s.id} className="flex items-center justify-between">
+                      <span
+                        className="text-xs font-medium truncate max-w-[140px]"
+                        style={{ color: SCHOOL_COLORS[si % SCHOOL_COLORS.length].hex }}
+                      >
+                        {s.name.split(' ').slice(0, 3).join(' ')}
+                      </span>
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{
+                          delay: fi * 0.05 + si * 0.1,
+                          type: 'spring',
+                          stiffness: 500,
+                          damping: 30,
+                        }}
+                      >
+                        {has ? (
+                          <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-gray-200" />
+                        )}
+                      </motion.div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Feature grid — desktop: table */}
+      <div className="hidden sm:block overflow-x-auto">
         <table className="w-full min-w-[500px]">
           <thead>
             <tr className="border-b border-gray-200">

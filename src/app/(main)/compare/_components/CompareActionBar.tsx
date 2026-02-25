@@ -67,24 +67,24 @@ export default function CompareActionBar({ schoolSlugs }: CompareActionBarProps)
       </div>
 
       {/* Mobile: fixed bottom bar */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/80 backdrop-blur-lg p-3 md:hidden">
-        <div className="flex items-center gap-2">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/80 backdrop-blur-lg p-2 sm:p-3 md:hidden">
+        <div className="mx-auto flex max-w-lg items-center gap-1.5 sm:gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={handleShare}
-            className="flex-1 text-xs"
+            className="flex-1 text-xs h-9"
           >
-            <Share2 className="mr-1.5 h-3.5 w-3.5" />
+            <Share2 className="mr-1 h-3.5 w-3.5" />
             Share
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handlePrint}
-            className="flex-1 text-xs"
+            className="flex-1 text-xs h-9"
           >
-            <Printer className="mr-1.5 h-3.5 w-3.5" />
+            <Printer className="mr-1 h-3.5 w-3.5" />
             Print
           </Button>
         </div>

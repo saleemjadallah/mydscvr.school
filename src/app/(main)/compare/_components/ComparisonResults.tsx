@@ -37,8 +37,8 @@ export default function ComparisonResults({ data }: ComparisonResultsProps) {
 
       {/* Sticky tab navigation */}
       <Tabs defaultValue="overview" className="compare-tabs">
-        <div className="compare-tabs-nav sticky top-16 z-30 -mx-4 bg-white/80 px-4 py-2 backdrop-blur-lg sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 border-b border-gray-100">
-          <TabsList variant="line" className="w-full justify-start gap-0 overflow-x-auto">
+        <div className="compare-tabs-nav sticky top-14 sm:top-16 z-30 -mx-4 bg-white/80 px-4 py-2 backdrop-blur-lg sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 border-b border-gray-100">
+          <TabsList variant="line" className="w-full justify-start gap-0 overflow-x-auto no-scrollbar">
             <TabsTrigger value="overview" className="text-xs sm:text-sm whitespace-nowrap">
               Overview
             </TabsTrigger>
@@ -73,8 +73,8 @@ export default function ComparisonResults({ data }: ComparisonResultsProps) {
             >
               {/* Radar chart */}
               <AnimatedSection>
-                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                  <h3 className="mb-4 text-sm font-semibold text-gray-700">
+                <div className="rounded-xl border border-gray-100 bg-white p-3 sm:p-6 shadow-sm">
+                  <h3 className="mb-3 sm:mb-4 text-sm font-semibold text-gray-700">
                     At a Glance
                   </h3>
                   <RadarChart schools={schools} />
@@ -131,8 +131,8 @@ export default function ComparisonResults({ data }: ComparisonResultsProps) {
               className="pt-4"
             >
               <AnimatedSection>
-                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                  <h3 className="mb-4 text-sm font-semibold text-gray-700">
+                <div className="rounded-xl border border-gray-100 bg-white p-3 sm:p-6 shadow-sm">
+                  <h3 className="mb-3 sm:mb-4 text-sm font-semibold text-gray-700">
                     Fee Comparison
                   </h3>
                   <FeeComparisonChart
@@ -175,8 +175,8 @@ export default function ComparisonResults({ data }: ComparisonResultsProps) {
               className="pt-4"
             >
               <AnimatedSection>
-                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                  <h3 className="mb-4 text-sm font-semibold text-gray-700">
+                <div className="rounded-xl border border-gray-100 bg-white p-3 sm:p-6 shadow-sm">
+                  <h3 className="mb-3 sm:mb-4 text-sm font-semibold text-gray-700">
                     School Locations
                   </h3>
                   <MapView

@@ -214,7 +214,7 @@ function ComparePageInner() {
       </div>
 
       {/* ── Results Area ── */}
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-8 lg:px-8">
         {/* Error state */}
         {error && !comparing && (
           <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-center">

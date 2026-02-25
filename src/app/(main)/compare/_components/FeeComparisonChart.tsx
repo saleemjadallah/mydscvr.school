@@ -48,11 +48,11 @@ export default function FeeComparisonChart({
 
           return (
             <div key={school.id} className="space-y-1.5">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-gray-700 truncate max-w-[200px]">
+              <div className="flex items-center justify-between gap-2 text-sm">
+                <span className="font-medium text-gray-700 truncate min-w-0">
                   {school.name}
                 </span>
-                <span className="text-xs font-semibold text-gray-900">
+                <span className="flex-shrink-0 text-xs font-semibold text-gray-900">
                   {feeLabel(school.fee_min, school.fee_max)}
                 </span>
               </div>
@@ -123,7 +123,39 @@ export default function FeeComparisonChart({
       {schools.some((s) => feeHistory[s.id]?.length > 0) && (
         <div className="space-y-3">
           <h4 className="text-sm font-semibold text-gray-700">Fee History</h4>
-          <div className="overflow-x-auto">
+
+          {/* Mobile: stacked cards per year */}
+          <div className="space-y-2 sm:hidden">
+            {getYears(schools, feeHistory).map((year) => (
+              <div key={year} className="rounded-lg border border-gray-100 bg-white p-3">
+                <p className="mb-2 text-xs font-semibold text-gray-500">{year}</p>
+                <div className="space-y-1.5">
+                  {schools.map((s, i) => {
+                    const entries = feeHistory[s.id]?.filter((f) => f.year === year) ?? [];
+                    const avgFee = entries.length > 0
+                      ? Math.round(entries.reduce((sum, e) => sum + e.fee_aed, 0) / entries.length)
+                      : null;
+                    return (
+                      <div key={s.id} className="flex items-center justify-between">
+                        <span
+                          className="text-xs font-medium truncate max-w-[120px]"
+                          style={{ color: SCHOOL_COLORS[i % SCHOOL_COLORS.length].hex }}
+                        >
+                          {s.name.split(' ').slice(0, 3).join(' ')}
+                        </span>
+                        <span className="text-xs text-gray-700">
+                          {avgFee != null ? `AED ${formatFee(avgFee)}` : '—'}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-100">

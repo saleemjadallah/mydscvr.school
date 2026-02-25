@@ -29,6 +29,36 @@ function FeatureCell({ value }: { value: boolean }) {
   );
 }
 
+// Mobile: stacked card layout for a single row
+function MobileRowCard({
+  row,
+  schools,
+}: {
+  row: { label: string; render: (s: CompareSchool) => React.ReactNode };
+  schools: CompareSchool[];
+}) {
+  return (
+    <div className="rounded-lg border border-gray-100 bg-white p-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+        {row.label}
+      </p>
+      <div className="space-y-2">
+        {schools.map((s, i) => (
+          <div key={s.id} className="flex items-center justify-between gap-2">
+            <span
+              className="text-xs font-medium truncate max-w-[120px]"
+              style={{ color: SCHOOL_COLORS[i % SCHOOL_COLORS.length].hex }}
+            >
+              {s.name.split(' ').slice(0, 3).join(' ')}
+            </span>
+            <div className="flex-shrink-0">{row.render(s)}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function ComparisonTable({ schools }: ComparisonTableProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -36,7 +66,7 @@ export default function ComparisonTable({ schools }: ComparisonTableProps) {
     {
       label: 'Area',
       render: (s) => (
-        <span className="flex items-center justify-center gap-1 text-sm text-gray-700">
+        <span className="flex items-center gap-1 text-sm text-gray-700">
           <MapPin className="h-3.5 w-3.5 text-gray-400" />
           {s.area ?? '—'}
         </span>
@@ -45,7 +75,7 @@ export default function ComparisonTable({ schools }: ComparisonTableProps) {
     {
       label: 'Curriculum',
       render: (s) => (
-        <div className="flex flex-wrap justify-center gap-1">
+        <div className="flex flex-wrap justify-end sm:justify-center gap-1">
           {s.curriculum?.length ? (
             s.curriculum.map((c) => (
               <Badge
@@ -86,7 +116,7 @@ export default function ComparisonTable({ schools }: ComparisonTableProps) {
       label: 'Google Rating',
       render: (s) =>
         s.google_rating != null ? (
-          <span className="flex items-center justify-center gap-1 text-sm">
+          <span className="flex items-center gap-1 text-sm">
             <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
             <span className="font-medium text-gray-700">
               {Number(s.google_rating).toFixed(1)}
@@ -141,19 +171,36 @@ export default function ComparisonTable({ schools }: ComparisonTableProps) {
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+      {/* Mobile: stacked card layout */}
+      <div className="space-y-2 sm:hidden">
+        <AnimatePresence>
+          {visibleRows.map((row, ri) => (
+            <motion.div
+              key={row.label}
+              initial={ri >= 6 ? { opacity: 0, height: 0 } : false}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              <MobileRowCard row={row} schools={schools} />
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* Desktop: table layout */}
+      <div className="hidden sm:block overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
         <table className="w-full min-w-[600px] border-collapse">
           <thead>
             <tr>
-              <th className="sticky left-0 z-10 w-40 border-b border-gray-200 bg-gray-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500" />
+              <th className="sticky left-0 z-10 w-32 md:w-40 border-b border-gray-200 bg-gray-50 px-3 md:px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500" />
               {schools.map((s, i) => (
                 <th
                   key={s.id}
-                  className="border-b border-gray-200 bg-gray-50 px-4 py-3 text-center"
+                  className="border-b border-gray-200 bg-gray-50 px-3 md:px-4 py-3 text-center"
                 >
                   <Link
                     href={`/schools/${s.slug}`}
-                    className="text-sm font-bold hover:underline"
+                    className="text-xs md:text-sm font-bold hover:underline"
                     style={{ color: SCHOOL_COLORS[i % SCHOOL_COLORS.length].hex }}
                   >
                     {s.name}
@@ -172,13 +219,13 @@ export default function ComparisonTable({ schools }: ComparisonTableProps) {
                   exit={{ opacity: 0, height: 0 }}
                   className={ri % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}
                 >
-                  <td className="sticky left-0 z-10 border-b border-gray-100 bg-inherit px-4 py-3 text-sm font-medium text-gray-600">
+                  <td className="sticky left-0 z-10 border-b border-gray-100 bg-inherit px-3 md:px-4 py-3 text-sm font-medium text-gray-600">
                     {row.label}
                   </td>
                   {schools.map((s) => (
                     <td
                       key={s.id}
-                      className="border-b border-gray-100 px-4 py-3 text-center"
+                      className="border-b border-gray-100 px-3 md:px-4 py-3 text-center"
                     >
                       {row.render(s)}
                     </td>
