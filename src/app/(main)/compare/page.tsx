@@ -5,8 +5,10 @@ export const dynamic = 'force-dynamic';
 import { Suspense, useState, useCallback, useEffect, useRef } from 'react';
 import { useQueryState, parseAsString } from 'nuqs';
 import toast from 'react-hot-toast';
+import { useAuth } from '@clerk/nextjs';
 import { MAX_COMPARE_SCHOOLS } from '@/lib/constants';
 import { compareSchools } from '@/lib/api';
+import SignUpWallModal from '@/components/SignUpWallModal';
 import type { School, CompareResponse } from '@/types';
 
 import CompareHero from './_components/CompareHero';
@@ -37,6 +39,9 @@ function ComparePageFallback() {
 }
 
 function ComparePageInner() {
+  const { isSignedIn } = useAuth();
+  const [wallOpen, setWallOpen] = useState(false);
+
   // ── URL state via nuqs ──
   const [schoolsParam, setSchoolsParam] = useQueryState(
     'schools',
@@ -57,6 +62,8 @@ function ComparePageInner() {
   useEffect(() => {
     if (initialLoadDone.current) return;
     initialLoadDone.current = true;
+
+    if (!isSignedIn) return;
 
     const slugs = schoolsParam
       .split(',')
@@ -107,6 +114,12 @@ function ComparePageInner() {
   // ── Handle compare ──
   async function handleCompare() {
     if (selected.length < 2) return;
+
+    if (!isSignedIn) {
+      setWallOpen(true);
+      return;
+    }
+
     setComparing(true);
     setError('');
     setResult(null);
@@ -134,6 +147,10 @@ function ComparePageInner() {
 
   // ── Handle suggestion chips ──
   function handleSuggestion(slugs: string[]) {
+    if (!isSignedIn) {
+      setWallOpen(true);
+      return;
+    }
     setSchoolsParam(slugs.join(','));
     autoLoadFromSlugs(slugs);
   }
@@ -225,6 +242,8 @@ function ComparePageInner() {
           <CompareEmptyState onSuggestion={handleSuggestion} />
         )}
       </div>
+
+      <SignUpWallModal open={wallOpen} onClose={() => setWallOpen(false)} feature="compare" />
     </div>
   );
 }

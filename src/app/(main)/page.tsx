@@ -6,11 +6,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import { useAuth } from '@clerk/nextjs';
 import { Search, Sparkles, MapPin, GraduationCap, CheckCircle, Brain, Quote } from 'lucide-react';
 import { staggerContainer, staggerItem, fadeInUp } from '@/lib/animations';
 import AnimatedCounter from '@/components/AnimatedCounter';
 import FeaturedSchools from '@/components/FeaturedSchools';
 import HomepageNews from '@/components/HomepageNews';
+import SignUpWallModal from '@/components/SignUpWallModal';
 
 // ---------------------------------------------------------------------------
 // Data
@@ -69,6 +71,8 @@ const TESTIMONIALS = [
 
 export default function HomePage() {
   const router = useRouter();
+  const { isSignedIn } = useAuth();
+  const [wallOpen, setWallOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [liveStats, setLiveStats] = useState(DEFAULT_STATS);
   const [liveCurricula, setLiveCurricula] = useState(DEFAULT_CURRICULA);
@@ -90,6 +94,12 @@ export default function HomePage() {
   function handleSearch(searchQuery?: string) {
     const q = (searchQuery ?? query).trim();
     if (!q) return;
+
+    if (!isSignedIn) {
+      setWallOpen(true);
+      return;
+    }
+
     router.push(`/schools?q=${encodeURIComponent(q)}`);
   }
 
@@ -414,6 +424,8 @@ export default function HomePage() {
           </motion.div>
         </div>
       </section>
+
+      <SignUpWallModal open={wallOpen} onClose={() => setWallOpen(false)} feature="ai-search" />
     </div>
   );
 }

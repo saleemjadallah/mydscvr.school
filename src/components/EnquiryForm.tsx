@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
+import { useAuth } from "@clerk/nextjs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import SignUpWallModal from "@/components/SignUpWallModal";
 import {
   CheckCircle2,
   ChevronDown,
@@ -289,6 +291,8 @@ const MESSAGE_TEMPLATES: MessageTemplate[] = [
 // ---------------------------------------------------------------------------
 
 export default function EnquiryForm({ school }: EnquiryFormProps) {
+  const { isSignedIn } = useAuth();
+  const [wallOpen, setWallOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState<string | null>(null);
@@ -340,6 +344,11 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
   );
 
   const onSubmit = async (data: EnquiryFormValues) => {
+    if (!isSignedIn) {
+      setWallOpen(true);
+      return;
+    }
+
     try {
       const res = await fetch("/api/enquiries", {
         method: "POST",
@@ -616,6 +625,8 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
       <p className="text-center text-xs text-gray-400">
         Your details will be shared with {school.name} to process your enquiry.
       </p>
+
+      <SignUpWallModal open={wallOpen} onClose={() => setWallOpen(false)} feature="enquiry" />
     </form>
   );
 }

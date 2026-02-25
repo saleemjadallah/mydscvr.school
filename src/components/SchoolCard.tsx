@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Star, MapPin, BookOpen, Heart, Navigation } from "lucide-react";
 import { motion } from "framer-motion";
+import { useAuth } from "@clerk/nextjs";
 import { Badge } from "@/components/ui/badge";
 import { resolveHeroPhoto } from "@/lib/school-utils";
+import SignUpWallModal from "@/components/SignUpWallModal";
 import type { School } from "@/types";
 
 // ---------------------------------------------------------------------------
@@ -60,6 +63,9 @@ interface SchoolCardProps {
 }
 
 export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCardProps) {
+  const { isSignedIn } = useAuth();
+  const [wallOpen, setWallOpen] = useState(false);
+
   const heroPhoto = resolveHeroPhoto(undefined, school.google_photos, school.hero_photo_url);
   const khdaColors = school.khda_rating
     ? KHDA_COLOR_MAP[school.khda_rating] ?? { bg: "bg-gray-100", text: "text-gray-700" }
@@ -115,6 +121,10 @@ export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCard
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              if (!isSignedIn) {
+                setWallOpen(true);
+                return;
+              }
               onToggleSave?.(school.id);
             }}
             className={`absolute right-1.5 top-1.5 z-10 rounded-full p-1.5 transition-colors ${
@@ -259,6 +269,8 @@ export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCard
           </button>
         </div>
       </Link>
+
+      <SignUpWallModal open={wallOpen} onClose={() => setWallOpen(false)} feature="save" />
     </motion.div>
   );
 }

@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@clerk/nextjs';
 import {
   Search,
   SlidersHorizontal,
@@ -16,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import SchoolCard from '@/components/SchoolCard';
+import SignUpWallModal from '@/components/SignUpWallModal';
 import { useSavedSchools } from '@/hooks/useSavedSchools';
 import type {
   School,
@@ -266,6 +268,8 @@ function NurseryFilters({
 // ---------------------------------------------------------------------------
 
 function NurseriesPageContent() {
+  const { isSignedIn } = useAuth();
+  const [wallOpen, setWallOpen] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -308,8 +312,14 @@ function NurseriesPageContent() {
   const handleNewSearch = useCallback(() => {
     const q = searchInput.trim();
     if (!q) return;
+
+    if (!isSignedIn) {
+      setWallOpen(true);
+      return;
+    }
+
     router.push(`/nurseries?q=${encodeURIComponent(q)}`);
-  }, [searchInput, router]);
+  }, [searchInput, router, isSignedIn]);
 
   const resetFilters = useCallback(() => {
     setFilters(DEFAULT_FILTERS);
@@ -537,6 +547,8 @@ function NurseriesPageContent() {
           )}
         </main>
       </div>
+
+      <SignUpWallModal open={wallOpen} onClose={() => setWallOpen(false)} feature="ai-search" />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import { useAuth } from '@clerk/nextjs';
 import {
   Search,
   LayoutGrid,
@@ -29,6 +30,7 @@ import {
 } from '@/components/ui/sheet';
 import SchoolCard from '@/components/SchoolCard';
 import MapView from '@/components/MapView';
+import SignUpWallModal from '@/components/SignUpWallModal';
 import { useSavedSchools } from '@/hooks/useSavedSchools';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { displayAreaName } from '@/lib/dubai-areas';
@@ -386,6 +388,8 @@ function SearchFilters({
 // ---------------------------------------------------------------------------
 
 function SchoolsPageContent() {
+  const { isSignedIn } = useAuth();
+  const [wallOpen, setWallOpen] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -479,8 +483,14 @@ function SchoolsPageContent() {
   const handleNewSearch = useCallback(() => {
     const q = searchInput.trim();
     if (!q) return;
+
+    if (!isSignedIn) {
+      setWallOpen(true);
+      return;
+    }
+
     router.push(`/schools?q=${encodeURIComponent(q)}`);
-  }, [searchInput, router]);
+  }, [searchInput, router, isSignedIn]);
 
   const resetFilters = useCallback(() => {
     handleFiltersChange(DEFAULT_FILTERS);
@@ -965,6 +975,8 @@ function SchoolsPageContent() {
             )}
         </main>
       </div>
+
+      <SignUpWallModal open={wallOpen} onClose={() => setWallOpen(false)} feature="ai-search" />
     </div>
   );
 }

@@ -3,9 +3,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageCircle, X, Send, Loader2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import SignUpWallModal from '@/components/SignUpWallModal';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -19,7 +21,9 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 export default function ChatWidget() {
+  const { isSignedIn } = useAuth();
   const [open, setOpen] = useState(false);
+  const [wallOpen, setWallOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -43,6 +47,11 @@ export default function ChatWidget() {
     async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed || loading) return;
+
+      if (!isSignedIn) {
+        setWallOpen(true);
+        return;
+      }
 
       const userMsg: Message = { role: 'user', content: trimmed };
       const updatedMessages = [...messages, userMsg];
@@ -83,11 +92,13 @@ export default function ChatWidget() {
         setLoading(false);
       }
     },
-    [messages, loading, sessionId]
+    [messages, loading, sessionId, isSignedIn]
   );
 
   return (
     <>
+      <SignUpWallModal open={wallOpen} onClose={() => setWallOpen(false)} feature="chat" />
+
       {/* Floating button with pulse ring */}
       <AnimatePresence>
         {!open && (
