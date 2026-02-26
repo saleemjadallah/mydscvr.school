@@ -16,7 +16,7 @@ export async function GET(
     const [school, fees, reviewsSummary, clickStats] = await Promise.all([
       db.query(`SELECT * FROM schools WHERE id = $1`, [id]),
       db.query(
-        `SELECT grade, year, fee_amount, source
+        `SELECT grade, year, fee_aed, source
          FROM fee_history WHERE school_id = $1
          ORDER BY year DESC, grade`,
         [id]

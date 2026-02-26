@@ -308,7 +308,7 @@ export default function AdminSchoolEditorPage({ params }: { params: Promise<{ id
                       <tr key={i} className="border-t border-slate-50">
                         <td className="py-1.5">{f.grade as string}</td>
                         <td>{f.year as number}</td>
-                        <td>{(f.fee_amount as number)?.toLocaleString()}</td>
+                        <td>{(f.fee_aed as number)?.toLocaleString()}</td>
                         <td><StatusBadge status={f.source as string} /></td>
                       </tr>
                     ))}
