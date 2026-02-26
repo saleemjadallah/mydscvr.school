@@ -68,7 +68,10 @@ const columns: ColumnDef<AdminSchool, unknown>[] = [
   {
     accessorKey: "google_rating",
     header: "Google",
-    cell: ({ row }) => row.original.google_rating?.toFixed(1) || "N/A",
+    cell: ({ row }) => {
+      const r = row.original.google_rating;
+      return r != null ? Number(r).toFixed(1) : "N/A";
+    },
   },
   {
     id: "status",
