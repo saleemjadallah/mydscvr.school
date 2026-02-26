@@ -344,7 +344,7 @@ export default function MapPage() {
   useEffect(() => {
     async function fetchSchools() {
       try {
-        const res = await fetch('/api/schools?limit=200');
+        const res = await fetch('/api/schools?limit=500');
         if (!res.ok) throw new Error('Failed to fetch schools');
         const data = await res.json();
         setAllSchools(data.schools ?? []);
@@ -571,7 +571,7 @@ export default function MapPage() {
                     lat: String(center.lat),
                     lng: String(center.lng),
                     radius_km: String(Math.round(approxRadius)),
-                    limit: '200',
+                    limit: '500',
                     sort: 'distance',
                   });
                   if (filters.type) params.set('type', filters.type);
