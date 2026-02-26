@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { requireAdmin } from "@/lib/admin-auth";
 import db from "@/db";
 
 // GET /api/admin/stats — Platform statistics
 export async function GET() {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const adminCheck = await requireAdmin();
+  if (!adminCheck.isAdmin) return adminCheck.response;
 
   try {
     const [enquiries, schools, searches] = await Promise.all([

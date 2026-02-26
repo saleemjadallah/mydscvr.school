@@ -11,7 +11,7 @@ import {
   UserButton,
   useAuth,
 } from "@clerk/nextjs";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import type { ReactNode } from "react";
 import { motion, useScroll, AnimatePresence } from "framer-motion";
 import {
@@ -29,6 +29,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import ChatWidget from "@/components/ChatWidget";
+import PageViewTracker from "@/components/PageViewTracker";
 
 const NAV_LINKS = [
   { href: "/schools", label: "Schools", icon: GraduationCap, description: "Browse all schools" },
@@ -597,6 +598,9 @@ export default function MainLayout({ children }: { children: ReactNode }) {
       <main className="flex-1">{children}</main>
       <Footer />
       <ChatWidget />
+      <Suspense fallback={null}>
+        <PageViewTracker />
+      </Suspense>
     </div>
   );
 }

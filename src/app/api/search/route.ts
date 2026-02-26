@@ -403,12 +403,12 @@ Write your explanation:`,
       }
     }
 
-    // Log search for analytics
+    // Log search for analytics (with structured intent for admin analytics)
     await db
       .query(
         `
-      INSERT INTO search_logs (user_id, session_id, query, query_type, filters, results_count)
-      VALUES ($1, $2, $3, 'natural_language', $4, $5)
+      INSERT INTO search_logs (user_id, session_id, query, query_type, filters, results_count, structured_intent)
+      VALUES ($1, $2, $3, 'natural_language', $4, $5, $6)
     `,
         [
           internalUserId,
@@ -416,6 +416,7 @@ Write your explanation:`,
           query,
           JSON.stringify(intent),
           topSchools.length,
+          JSON.stringify(intent),
         ]
       )
       .catch(() => {});
