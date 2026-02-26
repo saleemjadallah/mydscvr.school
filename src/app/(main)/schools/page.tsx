@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useCallback, Suspense } from 'react';
+import { useState, useCallback, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -441,6 +441,13 @@ function SchoolsPageContent() {
     setPage(1);
     setLoadedSchools([]);
   }, []);
+
+  // Auto-switch to distance sort when location becomes active
+  useEffect(() => {
+    if (userLocation) {
+      handleSortChange('distance');
+    }
+  }, [userLocation, handleSortChange]);
 
   // ---- Fetch areas for the filter dropdown ----
   const areasQuery = useQuery<{ name: string; count: number }[]>({

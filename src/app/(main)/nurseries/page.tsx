@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useCallback, Suspense } from 'react';
+import { useState, useCallback, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
@@ -12,6 +12,10 @@ import {
   X,
   Sparkles,
   ChevronDown,
+  ArrowUpDown,
+  Loader2,
+  Navigation,
+  Locate,
   Baby,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import SchoolCard from '@/components/SchoolCard';
 import SignUpWallModal from '@/components/SignUpWallModal';
 import { useSavedSchools } from '@/hooks/useSavedSchools';
+import { useUserLocation } from '@/hooks/useUserLocation';
 import type {
   School,
   SearchResponse,
@@ -45,6 +50,19 @@ const FEE_RANGES = [
   { label: 'AED 60,000+', min: '60000', max: '' },
 ];
 
+const BASE_SORT_OPTIONS = [
+  { value: 'rating', label: 'KHDA Rating' },
+  { value: 'fee_asc', label: 'Fees: Low to High' },
+  { value: 'fee_desc', label: 'Fees: High to Low' },
+  { value: 'reviews', label: 'Most Reviewed' },
+] as const;
+
+const DISTANCE_SORT_OPTION = { value: 'distance', label: 'Nearest First' } as const;
+
+type SortOption = 'rating' | 'fee_asc' | 'fee_desc' | 'reviews' | 'distance';
+
+const RADIUS_OPTIONS = [5, 10, 15, 20] as const;
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -54,6 +72,7 @@ interface Filters {
   feeMin: string;
   feeMax: string;
   hasSen: boolean;
+  radiusKm: number | '';
 }
 
 const DEFAULT_FILTERS: Filters = {
@@ -61,6 +80,7 @@ const DEFAULT_FILTERS: Filters = {
   feeMin: '',
   feeMax: '',
   hasSen: false,
+  radiusKm: '',
 };
 
 // ---------------------------------------------------------------------------
@@ -82,7 +102,9 @@ async function aiSearch(query: string): Promise<SearchResponse> {
 
 async function fetchNurseries(
   filters: Filters,
-  page: number
+  page: number,
+  sort: SortOption,
+  location?: { lat: number; lng: number } | null,
 ): Promise<SchoolListResponse> {
   const params = new URLSearchParams();
   params.set('type', 'nursery');
@@ -90,9 +112,14 @@ async function fetchNurseries(
   if (filters.feeMin) params.set('fee_min', filters.feeMin);
   if (filters.feeMax) params.set('fee_max', filters.feeMax);
   if (filters.hasSen) params.set('has_sen', 'true');
+  if (location) {
+    params.set('lat', String(location.lat));
+    params.set('lng', String(location.lng));
+  }
+  if (filters.radiusKm) params.set('radius_km', String(filters.radiusKm));
   params.set('page', String(page));
   params.set('limit', '20');
-  params.set('sort', 'rating');
+  params.set('sort', sort);
 
   const res = await fetch(`/api/schools?${params.toString()}`);
   if (!res.ok) throw new Error('Failed to fetch nurseries');
@@ -283,13 +310,36 @@ function NurseriesPageContent() {
   const queryParam = searchParams.get('q') ?? '';
 
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [sort, setSort] = useState<SortOption>('rating');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [searchInput, setSearchInput] = useState(queryParam);
   const [page] = useState(1);
 
   const { isSaved, toggleSave } = useSavedSchools();
+  const { location: userLocation, loading: locationLoading, error: locationError, requestLocation, clearLocation } = useUserLocation();
 
   const isAISearch = queryParam.length > 0;
+  const hasLocationContext = userLocation !== null;
+
+  // Build sort options dynamically based on location context
+  const sortOptions = hasLocationContext
+    ? [...BASE_SORT_OPTIONS, DISTANCE_SORT_OPTION]
+    : BASE_SORT_OPTIONS;
+
+  const handleFiltersChange = useCallback((newFilters: Filters) => {
+    setFilters(newFilters);
+  }, []);
+
+  const handleSortChange = useCallback((newSort: SortOption) => {
+    setSort(newSort);
+  }, []);
+
+  // Auto-switch to distance sort when location becomes active
+  useEffect(() => {
+    if (userLocation) {
+      handleSortChange('distance');
+    }
+  }, [userLocation, handleSortChange]);
 
   const aiQuery = useQuery<SearchResponse>({
     queryKey: ['nursery-ai-search', queryParam],
@@ -300,8 +350,8 @@ function NurseriesPageContent() {
   });
 
   const listQuery = useQuery<SchoolListResponse>({
-    queryKey: ['nurseries-list', filters, page],
-    queryFn: () => fetchNurseries(filters, page),
+    queryKey: ['nurseries-list', filters, page, sort, userLocation?.lat, userLocation?.lng],
+    queryFn: () => fetchNurseries(filters, page, sort, userLocation),
     enabled: !isAISearch,
     staleTime: 1000 * 60 * 5,
     retry: 1,
@@ -364,6 +414,37 @@ function NurseriesPageContent() {
             </Button>
           </div>
 
+          {/* Near Me button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (hasLocationContext) {
+                clearLocation();
+                if (sort === 'distance') setSort('rating');
+                handleFiltersChange({ ...filters, radiusKm: '' });
+              } else {
+                requestLocation();
+              }
+            }}
+            disabled={locationLoading}
+            className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-medium transition-all ${
+              hasLocationContext
+                ? 'border-[#FF6B35] bg-[#FF6B35]/10 text-[#FF6B35]'
+                : 'border-gray-200 text-gray-600 hover:border-[#FF6B35]/40 hover:text-[#FF6B35]'
+            }`}
+          >
+            {locationLoading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : hasLocationContext ? (
+              <X className="size-4" />
+            ) : (
+              <Locate className="size-4" />
+            )}
+            <span className="hidden sm:inline">
+              {locationLoading ? 'Locating...' : 'Near Me'}
+            </span>
+          </button>
+
           <Button
             variant="outline"
             size="sm"
@@ -400,17 +481,40 @@ function NurseriesPageContent() {
 
         {/* Main */}
         <main className="min-w-0 flex-1">
-          {/* Results heading */}
-          <div className="mb-3 sm:mb-4">
-            <h1 className="text-lg font-bold text-gray-900 sm:text-2xl">
-              {isAISearch
-                ? `Nursery results for "${queryParam}"`
-                : 'All Nurseries in Dubai'}
-            </h1>
-            {!activeQuery.isLoading && (
-              <p className="mt-0.5 text-xs sm:text-sm text-gray-500">
-                {total} {total === 1 ? 'nursery' : 'nurseries'} found
-              </p>
+          {/* Results heading + sort control */}
+          <div className="mb-3 sm:mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+            <div>
+              <h1 className="text-lg font-bold text-gray-900 sm:text-2xl">
+                {isAISearch
+                  ? `Nursery results for "${queryParam}"`
+                  : 'All Nurseries in Dubai'}
+              </h1>
+              {!activeQuery.isLoading && (
+                <p className="mt-0.5 text-xs sm:text-sm text-gray-500">
+                  {total} {total === 1 ? 'nursery' : 'nurseries'} found
+                </p>
+              )}
+            </div>
+
+            {/* Sort dropdown */}
+            {!isAISearch && (
+              <div className="flex flex-shrink-0 items-center gap-1.5">
+                <ArrowUpDown className="size-3.5 text-gray-400" />
+                <div className="relative">
+                  <select
+                    value={sort}
+                    onChange={(e) => handleSortChange(e.target.value as SortOption)}
+                    className="appearance-none rounded-lg border border-gray-200 bg-white py-1.5 pl-2 pr-7 text-sm text-gray-700 focus:border-[#FF6B35] focus:outline-none focus:ring-1 focus:ring-[#FF6B35]"
+                  >
+                    {sortOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 size-3.5 -translate-y-1/2 text-gray-400" />
+                </div>
+              </div>
             )}
           </div>
 
@@ -426,6 +530,46 @@ function NurseriesPageContent() {
               <p className="text-sm leading-relaxed text-gray-700">
                 {aiExplanation}
               </p>
+            </div>
+          )}
+
+          {/* Location context badge + radius filter */}
+          {hasLocationContext && (
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-1.5 rounded-lg bg-[#FF6B35]/10 px-3 py-1.5 text-sm font-medium text-[#FF6B35]">
+                <Navigation className="size-3.5" />
+                Showing nurseries near you
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-gray-500">Radius:</span>
+                {RADIUS_OPTIONS.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => {
+                      handleFiltersChange({
+                        ...filters,
+                        radiusKm: filters.radiusKm === r ? '' : r,
+                      });
+                    }}
+                    className={`rounded-md border px-2 py-1 text-xs font-medium transition-all ${
+                      filters.radiusKm === r
+                        ? 'border-[#FF6B35] bg-[#FF6B35]/10 text-[#FF6B35]'
+                        : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                    }`}
+                  >
+                    {r} km
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Location error */}
+          {locationError && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-700">
+              {locationError}
             </div>
           )}
 
