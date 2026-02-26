@@ -47,6 +47,7 @@ export default function GooglePlaceEmbed({
         src={src}
         width="100%"
         height={height}
+        className="h-[250px] sm:h-[350px]"
         style={{ border: 0 }}
         allowFullScreen
         loading="lazy"

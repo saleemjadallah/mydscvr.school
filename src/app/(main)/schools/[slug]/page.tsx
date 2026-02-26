@@ -263,7 +263,7 @@ export default async function SchoolProfilePage({
           ================================================================ */}
       <section className="relative">
         {photos.length > 0 ? (
-          <div className="relative h-[40vh] min-h-[320px] w-full overflow-hidden">
+          <div className="relative h-[35vh] min-h-[260px] sm:h-[40vh] sm:min-h-[320px] w-full overflow-hidden">
             <Image
               src={photos[0]}
               alt={school.name}
@@ -277,7 +277,7 @@ export default async function SchoolProfilePage({
           </div>
         ) : (
           <div
-            className="relative h-[40vh] min-h-[320px] w-full"
+            className="relative h-[35vh] min-h-[260px] sm:h-[40vh] sm:min-h-[320px] w-full"
             style={{ background: "var(--gradient-hero)" }}
           >
             <div className="absolute inset-0 flex items-center justify-center">
@@ -305,7 +305,7 @@ export default async function SchoolProfilePage({
             </nav>
 
             {/* School name */}
-            <h1 className="font-display text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
+            <h1 className="font-display text-2xl font-bold leading-tight text-white sm:text-4xl lg:text-5xl">
               {school.name}
             </h1>
 
@@ -391,19 +391,19 @@ export default async function SchoolProfilePage({
         </div>
       )}
 
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-10 lg:px-8">
         {/* Main grid: 2/3 content + 1/3 sidebar */}
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
           {/* ================================================================
               MAIN CONTENT (col-span-2)
               ================================================================ */}
-          <div className="space-y-12 lg:col-span-2">
+          <div className="space-y-8 sm:space-y-12 lg:col-span-2">
             {/* ----------------------------------------------------------
                 2. AI SUMMARY CARD
                 ---------------------------------------------------------- */}
             {school.ai_summary && (
               <AnimatedSection>
-                <div className="relative overflow-hidden rounded-2xl border border-purple-100/50 bg-gradient-to-br from-purple-50/60 via-white to-[#FF6B35]/5 p-6" style={{ boxShadow: "var(--shadow-card)" }}>
+                <div className="relative overflow-hidden rounded-2xl border border-purple-100/50 bg-gradient-to-br from-purple-50/60 via-white to-[#FF6B35]/5 p-4 sm:p-6" style={{ boxShadow: "var(--shadow-card)" }}>
                   {/* Decorative blur orb */}
                   <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-purple-200/30 blur-2xl" />
 
@@ -473,10 +473,10 @@ export default async function SchoolProfilePage({
                 3. QUICK FACTS GRID
                 ---------------------------------------------------------- */}
             <AnimatedSection delay={0.1}>
-              <h2 className="mb-5 font-display text-xl font-semibold text-gray-900">
+              <h2 className="mb-4 sm:mb-5 font-display text-lg sm:text-xl font-semibold text-gray-900">
                 Quick Facts
               </h2>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3">
                 {school.khda_rating && (
                   <QuickFact
                     icon={<ShieldCheck className="size-5 text-emerald-600" />}
@@ -579,7 +579,7 @@ export default async function SchoolProfilePage({
                 ---------------------------------------------------------- */}
             {school.khda_reports && school.khda_reports.length > 0 && (
               <AnimatedSection delay={0.15}>
-                <h2 className="mb-5 font-display text-xl font-semibold text-gray-900">
+                <h2 className="mb-4 sm:mb-5 font-display text-lg sm:text-xl font-semibold text-gray-900">
                   KHDA Inspection Reports
                 </h2>
                 <div className="space-y-4">
@@ -599,9 +599,9 @@ export default async function SchoolProfilePage({
                           className="rounded-2xl bg-white p-5"
                           style={{ boxShadow: "var(--shadow-card)" }}
                         >
-                          <div className="mb-2 flex items-center justify-between">
+                          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                             <div className="flex items-center gap-3">
-                              <FileText className="size-5 text-gray-400" />
+                              <FileText className="size-5 flex-shrink-0 text-gray-400" />
                               <div>
                                 <p className="font-semibold text-gray-900">
                                   {report.year} Inspection
@@ -622,7 +622,7 @@ export default async function SchoolProfilePage({
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="gap-1.5"
+                                  className="gap-1.5 text-xs"
                                 >
                                   <ExternalLink className="size-3.5" />
                                   View Report
@@ -675,11 +675,35 @@ export default async function SchoolProfilePage({
                 ---------------------------------------------------------- */}
             {school.fee_history && school.fee_history.length > 0 && (
               <AnimatedSection delay={0.2}>
-                <h2 className="mb-5 font-display text-xl font-semibold text-gray-900">
+                <h2 className="mb-4 sm:mb-5 font-display text-lg sm:text-xl font-semibold text-gray-900">
                   Fee Structure
                 </h2>
                 <div className="overflow-hidden rounded-2xl" style={{ boxShadow: "var(--shadow-card)" }}>
-                  <table className="w-full text-sm">
+                  {/* Mobile: compact card-style rows */}
+                  <div className="divide-y divide-gray-100 sm:hidden">
+                    {school.fee_history
+                      .sort(
+                        (a: FeeHistory, b: FeeHistory) =>
+                          b.year - a.year ||
+                          (a.grade ?? "").localeCompare(b.grade ?? "")
+                      )
+                      .map((fee: FeeHistory) => (
+                        <div key={fee.id} className="bg-white px-4 py-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium text-gray-900 text-sm">
+                              {fee.grade ?? "All Grades"}
+                            </span>
+                            <span className="text-xs text-gray-400">{fee.year}</span>
+                          </div>
+                          <p className="mt-0.5 text-sm font-semibold text-gray-900">
+                            AED {formatFee(fee.fee_aed)}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+
+                  {/* Desktop: full table */}
+                  <table className="hidden w-full text-sm sm:table">
                     <thead>
                       <tr className="bg-gray-50">
                         <th className="px-4 py-3 text-left font-semibold text-gray-700">
@@ -691,7 +715,7 @@ export default async function SchoolProfilePage({
                         <th className="px-4 py-3 text-left font-semibold text-gray-700">
                           Year
                         </th>
-                        <th className="hidden px-4 py-3 text-left font-semibold text-gray-700 sm:table-cell">
+                        <th className="hidden px-4 py-3 text-left font-semibold text-gray-700 md:table-cell">
                           Source
                         </th>
                       </tr>
@@ -717,7 +741,7 @@ export default async function SchoolProfilePage({
                             <td className="px-4 py-3 text-gray-600">
                               {fee.year}
                             </td>
-                            <td className="hidden px-4 py-3 text-gray-500 sm:table-cell">
+                            <td className="hidden px-4 py-3 text-gray-500 md:table-cell">
                               {fee.source}
                             </td>
                           </tr>
@@ -755,12 +779,12 @@ export default async function SchoolProfilePage({
                       return (
                         <div
                           key={review.id}
-                          className="rounded-2xl bg-white p-5"
+                          className="rounded-2xl bg-white p-4 sm:p-5"
                           style={{ boxShadow: "var(--shadow-card)" }}
                         >
-                          <div className="mb-2 flex items-start justify-between">
-                            <div>
-                              <p className="font-semibold text-gray-900">
+                          <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="font-semibold text-gray-900 truncate">
                                 {review.author ?? "Anonymous"}
                               </p>
                               {review.author_type && (
@@ -769,7 +793,7 @@ export default async function SchoolProfilePage({
                                 </p>
                               )}
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-shrink-0 items-center gap-1.5">
                               {review.sentiment && (
                                 <Badge
                                   className={`${sColor.bg} ${sColor.text} gap-1 border-0 text-[10px]`}
@@ -867,7 +891,7 @@ export default async function SchoolProfilePage({
                 7. MAP SECTION
                 ---------------------------------------------------------- */}
             <AnimatedSection delay={0.3}>
-              <h2 className="mb-5 font-display text-xl font-semibold text-gray-900">
+              <h2 className="mb-4 sm:mb-5 font-display text-lg sm:text-xl font-semibold text-gray-900">
                 Location
               </h2>
               <div className="space-y-3">
@@ -881,7 +905,7 @@ export default async function SchoolProfilePage({
                 />
 
                 {/* Address + external link */}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   {school.address && (
                     <p className="text-sm text-gray-500">
                       {school.address}
@@ -904,7 +928,7 @@ export default async function SchoolProfilePage({
               SIDEBAR (col-span-1, sticky)
               ================================================================ */}
           <aside className="lg:col-span-1">
-            <div className="sticky top-24 space-y-6">
+            <div className="space-y-6 lg:sticky lg:top-24">
               {/* ----------------------------------------------------------
                   Quick Contact Card
                   ---------------------------------------------------------- */}
@@ -974,13 +998,13 @@ function QuickFact({
 }) {
   return (
     <div
-      className="flex items-start gap-3 rounded-2xl bg-gradient-to-br from-gray-50 to-white p-4 transition-all hover:shadow-md"
+      className="flex items-start gap-2.5 sm:gap-3 rounded-2xl bg-gradient-to-br from-gray-50 to-white p-3 sm:p-4 transition-all hover:shadow-md"
       style={{ boxShadow: "var(--shadow-card)" }}
     >
-      <div className="flex-shrink-0 rounded-lg bg-white p-2 shadow-sm">{icon}</div>
+      <div className="flex-shrink-0 rounded-lg bg-white p-1.5 sm:p-2 shadow-sm">{icon}</div>
       <div className="min-w-0">
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className="truncate text-sm font-semibold text-gray-900">{value}</p>
+        <p className="text-[11px] sm:text-xs text-gray-500">{label}</p>
+        <p className="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-2">{value}</p>
       </div>
     </div>
   );

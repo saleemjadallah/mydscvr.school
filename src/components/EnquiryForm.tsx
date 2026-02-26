@@ -417,7 +417,7 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col gap-5 rounded-xl border bg-white p-6 shadow-sm"
+      className="flex flex-col gap-4 sm:gap-5 rounded-xl border bg-white p-4 sm:p-6 shadow-sm"
     >
       <h3 className="text-lg font-semibold text-gray-900">
         Enquire at {school.name}

@@ -57,7 +57,7 @@ export default function ProfileMap({
   return (
     <div
       ref={containerRef}
-      className="h-64 w-full rounded-xl border shadow-sm"
+      className="h-48 sm:h-64 w-full rounded-xl border shadow-sm"
     />
   );
 }
