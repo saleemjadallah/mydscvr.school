@@ -9,6 +9,7 @@ import { rateLimit, getClientIP } from "@/lib/rate-limit";
 import { sanitizeSchoolRecord } from "@/lib/school-data";
 import { haversineDistance, distanceScore, geocodePlace, isInDubai, formatDistanceLabel } from "@/lib/geo";
 import { resolveAreaAliases } from "@/lib/dubai-areas";
+import { getSearchBoost } from "@/lib/featured";
 import type { ExaArticle, User, LocationContext } from "@/types";
 
 let _claude: Anthropic | null = null;
@@ -157,7 +158,8 @@ Important distinctions:
       params.push(filters.type);
     }
 
-    // Fetch filtered schools with their embeddings
+    // Fetch filtered schools with their embeddings + subscription plan
+    // Uses scalar subquery (not JOIN) to avoid duplicates if school_embeddings has multiple rows
     const searchResult = await db.query(
       `
       SELECT
@@ -165,11 +167,13 @@ Important distinctions:
         s.fee_min, s.fee_max, s.google_rating, s.google_review_count,
         s.ai_summary, s.ai_strengths, s.has_sen_support, s.latitude, s.longitude,
         s.google_photos, s.is_featured,
+        ss.plan AS subscription_plan,
         (SELECT sp.r2_url FROM school_photos sp WHERE sp.school_id = s.id AND sp.is_active = true ORDER BY sp.sort_order LIMIT 1) as hero_photo_url,
-        se.embedding
+        (SELECT se.embedding FROM school_embeddings se WHERE se.school_id = s.id ORDER BY se.created_at DESC LIMIT 1) as embedding
       FROM schools s
-      JOIN school_embeddings se ON se.school_id = s.id
+      LEFT JOIN school_subscriptions ss ON ss.school_id = s.id AND ss.status IN ('active', 'trialing')
       WHERE ${filterClauses.join(" AND ")}
+        AND EXISTS (SELECT 1 FROM school_embeddings se WHERE se.school_id = s.id)
     `,
       params
     );
@@ -297,12 +301,17 @@ Important distinctions:
         const semanticWeight = referenceLocation ? 0.40 : 0.6;
         const distanceWeight = referenceLocation ? 0.35 : 0;
 
+        // Plan-based search boost (supplements featured boost)
+        const planBoost = getSearchBoost((row.subscription_plan as string) ?? "free");
+        // Backward compat: manually featured schools (is_featured=true) keep strong boost
+        const featuredBoost = row.is_featured ? 0.5 : 0;
+
         const hybridScore =
-          (row.is_featured ? 1000 : 0) +
           semantic * semanticWeight +
           schoolDistScore * distanceWeight +
           khda +
-          prefBoost;
+          prefBoost +
+          Math.max(planBoost, featuredBoost);
 
         // Strip raw embedding from response
         const school: Record<string, unknown> = { ...row };

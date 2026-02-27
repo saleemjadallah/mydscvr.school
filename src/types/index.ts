@@ -480,3 +480,146 @@ export interface SchoolAnalyticsStats {
     change_pct: number;
   };
 }
+
+// ============================================
+// SCHOOL ADMIN
+// ============================================
+
+export type SchoolAdminRole = "owner" | "admin" | "staff";
+
+export interface SchoolAdmin {
+  id: string;
+  school_id: string;
+  clerk_user_id: string;
+  email: string;
+  name: string | null;
+  role: SchoolAdminRole;
+  invited_by: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================
+// SUBSCRIPTIONS & BILLING
+// ============================================
+
+export type SubscriptionPlan = "free" | "starter" | "growth" | "elite" | "enterprise";
+export type SubscriptionStatus = "active" | "past_due" | "canceled" | "trialing";
+
+export interface SchoolSubscription {
+  id: string;
+  school_id: string;
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  billing_cycle: "monthly" | "annual";
+  monthly_price: number;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  trial_ends_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreditLedger {
+  id: string;
+  school_id: string;
+  subscription_id: string | null;
+  period_start: string;
+  period_end: string;
+  credits_included: number;
+  credits_used: number;
+  overage_count: number;
+  overage_rate: number;
+  overage_total: number;
+  disputes_auto_credited: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type BillingEventType =
+  | "credit_used"
+  | "overage_charged"
+  | "credit_refunded"
+  | "disputed"
+  | "dispute_auto_credited"
+  | "dispute_pending_review"
+  | "duplicate_skipped"
+  | "free_tier_charged";
+
+export interface EnquiryBillingEvent {
+  id: string;
+  enquiry_id: string;
+  school_id: string;
+  ledger_id: string | null;
+  event_type: BillingEventType;
+  amount: number;
+  credit_balance_after: number | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface CreditStatus {
+  credits_included: number;
+  credits_used: number;
+  credits_remaining: number;
+  overage_count: number;
+  overage_total: number;
+  period_start: string;
+  period_end: string;
+  plan: SubscriptionPlan;
+}
+
+// ============================================
+// SCHOOL ADMIN DASHBOARD
+// ============================================
+
+export interface SchoolAdminDashboard {
+  profile_views_30d: number;
+  profile_views_delta: number;
+  enquiries_30d: number;
+  enquiries_delta: number;
+  credit_status: CreditStatus;
+  plan: SubscriptionPlan;
+  recent_enquiries: SchoolAdminEnquiry[];
+  enquiry_trend: { date: string; count: number }[];
+}
+
+export interface SchoolAdminEnquiry {
+  id: string;
+  parent_name: string;
+  parent_email: string;
+  parent_phone: string | null;
+  child_grade: string | null;
+  message: string | null;
+  source: string | null;
+  status: string;
+  is_billed: boolean;
+  billed_amount: number | null;
+  billing_event_type: BillingEventType | null;
+  created_at: string;
+  responded_at: string | null;
+}
+
+export interface SchoolAdminAnalytics {
+  profile_views: { date: string; count: number }[];
+  clicks_by_type: ClicksByType[];
+  enquiry_funnel: {
+    views: number;
+    enquiries: number;
+    responded: number;
+    enrolled: number;
+  };
+  top_queries: TopSearchQuery[];
+  period: string;
+  previous_period: {
+    profile_views: number;
+    enquiries: number;
+    views_delta: number;
+    enquiries_delta: number;
+  };
+}

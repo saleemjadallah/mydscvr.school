@@ -4,6 +4,7 @@ const isProtectedRoute = createRouteMatcher([
   "/saved(.*)",
   "/profile(.*)",
   "/dashboard(.*)",
+  "/school-admin(.*)",
 ]);
 
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);

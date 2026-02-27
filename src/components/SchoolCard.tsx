@@ -9,6 +9,8 @@ import { useAuth } from "@clerk/nextjs";
 import { Badge } from "@/components/ui/badge";
 import { resolveHeroPhoto } from "@/lib/school-utils";
 import SignUpWallModal from "@/components/SignUpWallModal";
+import SchoolBadge from "@/components/school-admin/SchoolBadge";
+import { getSchoolBadges } from "@/lib/badges";
 import type { School } from "@/types";
 
 // ---------------------------------------------------------------------------
@@ -57,6 +59,7 @@ interface SchoolCardProps {
     hero_photo_url?: string | null;
     distance_km?: number;
     distance_label?: string;
+    subscription_plan?: string | null;
   };
   isSaved?: boolean;
   onToggleSave?: (schoolId: string) => void;
@@ -70,6 +73,9 @@ export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCard
   const khdaColors = school.khda_rating
     ? KHDA_COLOR_MAP[school.khda_rating] ?? { bg: "bg-gray-100", text: "text-gray-700" }
     : null;
+  const subscriptionBadges = school.subscription_plan
+    ? getSchoolBadges(school.subscription_plan)
+    : [];
 
   return (
     <motion.div
@@ -165,6 +171,9 @@ export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCard
                 Featured
               </Badge>
             )}
+            {subscriptionBadges.map((b) => (
+              <SchoolBadge key={b.type} type={b.type} size="sm" />
+            ))}
             {school.khda_rating && khdaColors && (
               <Badge
                 variant="secondary"

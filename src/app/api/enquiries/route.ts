@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import db from "@/db";
 import { sendEnquiryEmail } from "@/lib/email";
+import { processEnquiryBilling } from "@/lib/billing";
 
 // POST /api/enquiries — Submit enquiry (core revenue action)
 export async function POST(request: NextRequest) {
@@ -35,9 +36,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const client = await db.getClient();
+
   try {
-    // Get school details
-    const school = await db.query("SELECT * FROM schools WHERE id = $1", [
+    // Get school details (outside transaction — read-only)
+    const school = await client.query("SELECT * FROM schools WHERE id = $1", [
       school_id,
     ]);
     if (!school.rows[0]) {
@@ -49,7 +52,7 @@ export async function POST(request: NextRequest) {
     try {
       const { userId } = await auth();
       if (userId) {
-        const userResult = await db.query(
+        const userResult = await client.query(
           `SELECT id FROM users WHERE clerk_id = $1`,
           [userId]
         );
@@ -61,8 +64,11 @@ export async function POST(request: NextRequest) {
       // Not authenticated — continue without user_id
     }
 
+    // BEGIN transaction: enquiry insert + billing
+    await client.query("BEGIN");
+
     // Insert enquiry
-    const result = await db.query(
+    const result = await client.query(
       `
       INSERT INTO enquiries (
         school_id, parent_name, parent_email, parent_phone, parent_whatsapp,
@@ -95,8 +101,26 @@ export async function POST(request: NextRequest) {
 
     const enquiryId = result.rows[0].id;
 
-    // Send confirmation email to parent
-    await sendEnquiryEmail({
+    // Process billing within the same transaction
+    const billing = await processEnquiryBilling(
+      client,
+      enquiryId,
+      school_id,
+      parent_email
+    );
+
+    // Update enquiry with billing info
+    await client.query(
+      `UPDATE enquiries
+       SET is_billed = $2, billed_at = CASE WHEN $2 THEN NOW() ELSE NULL END, billed_amount = $3
+       WHERE id = $1`,
+      [enquiryId, billing.is_billed, billing.billed_amount]
+    );
+
+    await client.query("COMMIT");
+
+    // Emails sent OUTSIDE the transaction (fire-and-forget)
+    sendEnquiryEmail({
       type: "parent_confirmation",
       to: parent_email,
       parentName: parent_name,
@@ -104,9 +128,8 @@ export async function POST(request: NextRequest) {
       enquiryId,
     }).catch((err) => console.error("Parent email error:", err));
 
-    // Send lead notification email to school
     if (school.rows[0].admission_email) {
-      await sendEnquiryEmail({
+      sendEnquiryEmail({
         type: "school_notification",
         to: school.rows[0].admission_email,
         parentName: parent_name,
@@ -119,10 +142,10 @@ export async function POST(request: NextRequest) {
         enquiryType: enquiry_type,
       }).catch((err) => console.error("School email error:", err));
 
-      await db.query(
+      db.query(
         `UPDATE enquiries SET status = 'sent_to_school', sent_to_school_at = NOW() WHERE id = $1`,
         [enquiryId]
-      );
+      ).catch(() => {});
     }
 
     return NextResponse.json({
@@ -131,10 +154,13 @@ export async function POST(request: NextRequest) {
       message: "Your enquiry has been submitted successfully",
     });
   } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
     console.error("Enquiry error:", error);
     return NextResponse.json(
       { error: "Failed to submit enquiry" },
       { status: 500 }
     );
+  } finally {
+    client.release();
   }
 }
