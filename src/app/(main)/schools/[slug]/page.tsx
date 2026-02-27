@@ -160,9 +160,13 @@ export async function generateMetadata({
   return {
     title: `${school.meta_title ?? school.name} | mydscvr.ai`,
     ...(description ? { description } : {}),
+    alternates: {
+      canonical: `/schools/${slug}`,
+    },
     openGraph: {
       title: `${school.name} | mydscvr.ai`,
       ...(description ? { description } : {}),
+      url: `/schools/${slug}`,
       type: "article",
       ...(ogImage ? { images: [{ url: ogImage, width: 1200, height: 630 }] } : {}),
     },
@@ -200,7 +204,7 @@ export default async function SchoolProfilePage({
       }
     : null;
 
-  // Structured data
+  // Structured data — School
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "School",
@@ -226,8 +230,10 @@ export default async function SchoolProfilePage({
       : {}),
     ...(school.phone ? { telephone: school.phone } : {}),
     ...(school.email ? { email: school.email } : {}),
-    ...(school.website ? { url: school.website } : {}),
+    ...(school.website ? { url: school.website, sameAs: [school.website] } : {}),
     ...(photos.length > 0 ? { image: photos[0] } : {}),
+    ...(school.total_students != null ? { numberOfStudents: school.total_students } : {}),
+    isAccessibleForFree: false,
     ...(school.google_rating
       ? {
           aggregateRating: {
@@ -250,12 +256,42 @@ export default async function SchoolProfilePage({
       : {}),
   };
 
+  // Structured data — BreadcrumbList
+  const breadcrumbData = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: "https://mydscvr.ai",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Schools",
+        item: "https://mydscvr.ai/schools",
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: school.name,
+        item: `https://mydscvr.ai/schools/${slug}`,
+      },
+    ],
+  };
+
   return (
     <>
       {/* Schema.org structured data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbData) }}
       />
 
       {/* ================================================================

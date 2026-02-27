@@ -25,6 +25,9 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://mydscvr.ai"
   ),
+  alternates: {
+    canonical: "/",
+  },
   icons: {
     icon: [
       { url: "/favicon-48.png", sizes: "48x48", type: "image/png" },
@@ -37,7 +40,18 @@ export const metadata: Metadata = {
     title: "mydscvr.ai — Dubai School & Nursery Finder",
     description:
       "Find, compare, and explore the best schools and nurseries in Dubai with AI-powered search and recommendations.",
+    url: "/",
+    siteName: "mydscvr.ai",
+    locale: "en_AE",
     type: "website",
+    images: [{ url: "/og-default.png", width: 1200, height: 630, alt: "mydscvr.ai — Dubai School & Nursery Finder" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "mydscvr.ai — Dubai School & Nursery Finder",
+    description:
+      "Find, compare, and explore the best schools and nurseries in Dubai with AI-powered search and recommendations.",
+    images: ["/og-default.png"],
   },
 };
 
@@ -77,6 +91,43 @@ fbq('track', 'PageView');`}
           )}
         </head>
         <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
+          {/* Organization structured data */}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "Organization",
+                name: "mydscvr.ai",
+                url: "https://mydscvr.ai",
+                logo: "https://mydscvr.ai/logos/Logo-Final-noBG.png",
+                description:
+                  "AI-powered Dubai school and nursery finder. Compare KHDA-rated schools by fees, curriculum, and location.",
+                sameAs: [],
+              }),
+            }}
+          />
+          {/* WebSite + SearchAction structured data (Sitelinks search box) */}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                name: "mydscvr.ai",
+                url: "https://mydscvr.ai",
+                potentialAction: {
+                  "@type": "SearchAction",
+                  target: {
+                    "@type": "EntryPoint",
+                    urlTemplate:
+                      "https://mydscvr.ai/schools?q={search_term_string}",
+                  },
+                  "query-input": "required name=search_term_string",
+                },
+              }),
+            }}
+          />
           <noscript>
             <iframe
               src="https://www.googletagmanager.com/ns.html?id=GTM-N27HT6KT"
