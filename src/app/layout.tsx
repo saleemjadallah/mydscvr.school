@@ -57,6 +57,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','GTM-N27HT6KT');`}
           </Script>
+          <Script
+            src="https://tools.luckyorange.com/core/lo.js?site-id=fe966133"
+            strategy="afterInteractive"
+          />
         </head>
         <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
           <noscript>
