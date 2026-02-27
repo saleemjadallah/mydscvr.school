@@ -533,6 +533,12 @@ function Footer() {
                 Compare Schools
               </Link>
               <Link
+                href="/blog"
+                className="block text-sm text-gray-300 transition-colors hover:text-white"
+              >
+                Blog
+              </Link>
+              <Link
                 href="/saved"
                 className="block text-sm text-gray-300 transition-colors hover:text-white"
               >
