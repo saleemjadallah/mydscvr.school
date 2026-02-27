@@ -5,8 +5,8 @@ import os
 import asyncio
 from google import genai
 
-# API key
-GOOGLE_API_KEY = "AIzaSyCdPv3z5Ydr6eukvAyiXdgKIN9sHGCa2_s"
+# API key from environment
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "")
 MODEL = "gemini-3-pro-image-preview"
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "public", "blog")
@@ -71,8 +71,10 @@ async def generate_image(client, prompt: str, output_path: str, label: str):
 
 
 async def main():
-    os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
-    client = genai.Client()
+    if not GOOGLE_API_KEY:
+        print("Error: GOOGLE_API_KEY environment variable not set")
+        return
+    client = genai.Client(api_key=GOOGLE_API_KEY)
 
     print("=" * 60)
     print("mydscvr.ai Blog Cover Image Generator")
