@@ -74,6 +74,12 @@ const FEE_RANGES = [
   { label: 'AED 80,000+', min: '80000', max: '' },
 ];
 
+function getRatingSortLabel(emirate: string) {
+  if (emirate === 'dubai') return 'KHDA Rating';
+  if (emirate === 'abu_dhabi') return 'ADEK Rating';
+  return 'Rating';
+}
+
 const BASE_SORT_OPTIONS = [
   { value: 'rating', label: 'KHDA Rating' },
   { value: 'fee_asc', label: 'Fees: Low to High' },
@@ -92,6 +98,7 @@ const RADIUS_OPTIONS = [5, 10, 15, 20] as const;
 // ---------------------------------------------------------------------------
 
 interface Filters {
+  emirate: 'dubai' | 'abu_dhabi' | '';
   type: 'school' | 'nursery' | '';
   rating: KHDARating | '';
   curriculum: string[];
@@ -103,6 +110,7 @@ interface Filters {
 }
 
 const DEFAULT_FILTERS: Filters = {
+  emirate: '',
   type: '',
   rating: '',
   curriculum: [],
@@ -146,6 +154,7 @@ async function fetchSchools(
   location?: { lat: number; lng: number } | null,
 ): Promise<SchoolListResponse> {
   const params = new URLSearchParams();
+  if (filters.emirate) params.set('emirate', filters.emirate);
   if (filters.type) params.set('type', filters.type);
   if (filters.rating) params.set('rating', filters.rating);
   if (filters.curriculum.length) params.set('curriculum', filters.curriculum[0]);
@@ -167,8 +176,9 @@ async function fetchSchools(
   return res.json();
 }
 
-async function fetchAreas(): Promise<{ name: string; count: number }[]> {
-  const res = await fetch('/api/schools/areas');
+async function fetchAreas(emirate?: string): Promise<{ name: string; count: number }[]> {
+  const params = emirate ? `?emirate=${emirate}` : '';
+  const res = await fetch(`/api/schools/areas${params}`);
   if (!res.ok) return [];
   return res.json();
 }
@@ -229,7 +239,12 @@ function SearchFilters({
     onChange({ ...filters, curriculum: next });
   };
 
+  const ratingFilterLabel = filters.emirate === 'dubai' ? 'KHDA Rating'
+    : filters.emirate === 'abu_dhabi' ? 'ADEK Rating'
+    : 'Inspection Rating';
+
   const activeCount =
+    (filters.emirate ? 1 : 0) +
     (filters.type ? 1 : 0) +
     (filters.rating ? 1 : 0) +
     filters.curriculum.length +
@@ -251,6 +266,27 @@ function SearchFilters({
             Clear all ({activeCount})
           </button>
         )}
+      </div>
+
+      {/* ---- Emirate ---- */}
+      <div>
+        <p className="mb-2.5 text-sm font-medium text-gray-700">Emirate</p>
+        <div className="flex gap-2">
+          {([['', 'All'], ['dubai', 'Dubai'], ['abu_dhabi', 'Abu Dhabi']] as const).map(([val, label]) => (
+            <button
+              key={val}
+              type="button"
+              onClick={() => onChange({ ...filters, emirate: val as Filters['emirate'], area: val !== filters.emirate ? '' : filters.area })}
+              className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-all ${
+                filters.emirate === val
+                  ? 'border-[#FF6B35] bg-[#FF6B35]/10 text-[#FF6B35]'
+                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ---- Type ---- */}
@@ -296,9 +332,9 @@ function SearchFilters({
         </div>
       </div>
 
-      {/* ---- KHDA Rating ---- */}
+      {/* ---- Rating ---- */}
       <div>
-        <p className="mb-2.5 text-sm font-medium text-gray-700">KHDA Rating</p>
+        <p className="mb-2.5 text-sm font-medium text-gray-700">{ratingFilterLabel}</p>
         <div className="relative">
           <select
             value={filters.rating}
@@ -407,9 +443,11 @@ function SchoolsPageContent() {
   const queryParam = searchParams.get('q') ?? '';
   const curriculumParam = searchParams.get('curriculum') ?? '';
   const areaParam = searchParams.get('area') ?? '';
+  const emirateParam = searchParams.get('emirate') ?? '';
 
   const [filters, setFilters] = useState<Filters>(() => ({
     ...DEFAULT_FILTERS,
+    emirate: (emirateParam === 'dubai' || emirateParam === 'abu_dhabi') ? emirateParam : '',
     curriculum: curriculumParam ? [curriculumParam] : [],
     area: areaParam,
   }));
@@ -425,10 +463,13 @@ function SchoolsPageContent() {
   const isAISearch = queryParam.length > 0;
   const hasLocationContext = userLocation !== null;
 
-  // Build sort options dynamically based on location context
+  // Build sort options dynamically based on location context and emirate
+  const dynamicSortOptions = BASE_SORT_OPTIONS.map(opt =>
+    opt.value === 'rating' ? { ...opt, label: getRatingSortLabel(filters.emirate) } : opt
+  );
   const sortOptions = hasLocationContext
-    ? [...BASE_SORT_OPTIONS, DISTANCE_SORT_OPTION]
-    : BASE_SORT_OPTIONS;
+    ? [...dynamicSortOptions, DISTANCE_SORT_OPTION]
+    : dynamicSortOptions;
 
   const handleFiltersChange = useCallback((newFilters: Filters) => {
     setFilters(newFilters);
@@ -449,10 +490,10 @@ function SchoolsPageContent() {
     }
   }, [userLocation, handleSortChange]);
 
-  // ---- Fetch areas for the filter dropdown ----
+  // ---- Fetch areas for the filter dropdown (scoped by emirate) ----
   const areasQuery = useQuery<{ name: string; count: number }[]>({
-    queryKey: ['school-areas'],
-    queryFn: fetchAreas,
+    queryKey: ['school-areas', filters.emirate],
+    queryFn: () => fetchAreas(filters.emirate || undefined),
     staleTime: 1000 * 60 * 30,
   });
 
@@ -758,7 +799,8 @@ function SchoolsPageContent() {
           )}
 
           {/* Active filter pills */}
-          {(filters.type ||
+          {(filters.emirate ||
+            filters.type ||
             filters.rating ||
             filters.curriculum.length > 0 ||
             filters.feeMin ||
@@ -766,6 +808,20 @@ function SchoolsPageContent() {
             filters.hasSen ||
             filters.area) && (
             <div className="mb-4 flex flex-wrap items-center gap-2">
+              {filters.emirate && (
+                <Badge
+                  variant="secondary"
+                  className="gap-1 bg-[#FF6B35]/10 text-[#FF6B35]"
+                >
+                  {filters.emirate === 'dubai' ? 'Dubai' : 'Abu Dhabi'}
+                  <button
+                    type="button"
+                    onClick={() => handleFiltersChange({ ...filters, emirate: '', area: '' })}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </Badge>
+              )}
               {filters.type && (
                 <Badge
                   variant="secondary"
@@ -799,7 +855,7 @@ function SchoolsPageContent() {
                   variant="secondary"
                   className="gap-1 bg-[#FF6B35]/10 text-[#FF6B35]"
                 >
-                  KHDA: {filters.rating}
+                  {filters.emirate === 'dubai' ? 'KHDA' : filters.emirate === 'abu_dhabi' ? 'ADEK' : 'Rating'}: {filters.rating}
                   <button
                     type="button"
                     onClick={() => handleFiltersChange({ ...filters, rating: '' })}

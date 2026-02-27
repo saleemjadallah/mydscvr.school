@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
   const area = searchParams.get("area");
   const curriculum = searchParams.get("curriculum");
   const rating = searchParams.get("rating");
+  const emirate = searchParams.get("emirate");
   const fee_min = searchParams.get("fee_min");
   const fee_max = searchParams.get("fee_max");
   const has_sen = searchParams.get("has_sen");
@@ -89,6 +90,10 @@ export async function GET(request: NextRequest) {
     query += ` AND s.type = $${paramIdx++}`;
     params.push(type);
   }
+  if (emirate) {
+    query += ` AND s.emirate = $${paramIdx++}`;
+    params.push(emirate);
+  }
   if (area) {
     query += ` AND s.area ILIKE $${paramIdx++}`;
     params.push(`%${area}%`);
@@ -98,7 +103,14 @@ export async function GET(request: NextRequest) {
     params.push(curriculum);
   }
   if (rating) {
-    query += ` AND s.khda_rating = $${paramIdx++}`;
+    if (emirate === "abu_dhabi") {
+      query += ` AND s.adek_rating = $${paramIdx++}`;
+    } else if (emirate === "dubai") {
+      query += ` AND s.khda_rating = $${paramIdx++}`;
+    } else {
+      query += ` AND (s.khda_rating = $${paramIdx} OR s.adek_rating = $${paramIdx})`;
+      paramIdx++;
+    }
     params.push(rating);
   }
   if (fee_min) {
@@ -114,7 +126,7 @@ export async function GET(request: NextRequest) {
   }
 
   const sortMap: Record<string, string> = {
-    rating: "s.khda_rating, s.google_rating DESC NULLS LAST",
+    rating: "COALESCE(s.khda_rating, s.adek_rating) NULLS LAST, s.google_rating DESC NULLS LAST",
     fee_asc: "s.fee_min ASC NULLS LAST",
     fee_desc: "s.fee_max DESC NULLS LAST",
     reviews: "s.google_review_count DESC NULLS LAST",
@@ -158,6 +170,10 @@ export async function GET(request: NextRequest) {
       countQuery += ` AND s.type = $${countIdx++}`;
       countParams.push(type);
     }
+    if (emirate) {
+      countQuery += ` AND s.emirate = $${countIdx++}`;
+      countParams.push(emirate);
+    }
     if (area) {
       countQuery += ` AND s.area ILIKE $${countIdx++}`;
       countParams.push(`%${area}%`);
@@ -167,7 +183,14 @@ export async function GET(request: NextRequest) {
       countParams.push(curriculum);
     }
     if (rating) {
-      countQuery += ` AND s.khda_rating = $${countIdx++}`;
+      if (emirate === "abu_dhabi") {
+        countQuery += ` AND s.adek_rating = $${countIdx++}`;
+      } else if (emirate === "dubai") {
+        countQuery += ` AND s.khda_rating = $${countIdx++}`;
+      } else {
+        countQuery += ` AND (s.khda_rating = $${countIdx} OR s.adek_rating = $${countIdx})`;
+        countIdx++;
+      }
       countParams.push(rating);
     }
     if (fee_min) {

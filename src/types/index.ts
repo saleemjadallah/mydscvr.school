@@ -30,6 +30,16 @@ export interface School {
   khda_inspection_url: string | null;
   khda_report_path: string | null;
 
+  // ADEK (Abu Dhabi)
+  adek_rating: string | null;
+  adek_rating_year: number | null;
+  adek_school_id: string | null;
+  national_identity_mark: string | null;
+
+  // Multi-emirate
+  emirate: string | null;    // 'dubai', 'abu_dhabi'
+  regulator: string | null;  // 'khda', 'adek'
+
   // Fees
   fee_min: number | null;
   fee_max: number | null;
@@ -280,6 +290,7 @@ export interface SearchIntent {
   type: "school" | "nursery" | null;
   curriculum: string[] | null;
   areas: string[] | null;
+  emirate: "dubai" | "abu_dhabi" | null;
   khda_rating: string | null;
   fee_max_aed: number | null;
   fee_min_aed: number | null;
@@ -375,6 +386,10 @@ export interface CompareSchool {
   gender: "boys" | "girls" | "mixed";
   khda_rating: KHDARating | null;
   khda_rating_year: number | null;
+  adek_rating: string | null;
+  adek_rating_year: number | null;
+  emirate: string | null;
+  regulator: string | null;
   fee_min: number | null;
   fee_max: number | null;
   fee_currency: string;

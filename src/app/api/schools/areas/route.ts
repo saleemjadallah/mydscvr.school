@@ -1,22 +1,29 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import db from "@/db";
 import { cache } from "@/lib/cache";
 import { sanitizeTextValue } from "@/lib/school-data";
 
-// GET /api/schools/areas — List distinct areas
-export async function GET() {
-  const cacheKey = "schools:areas";
+// GET /api/schools/areas — List distinct areas (optionally scoped by emirate)
+export async function GET(request: NextRequest) {
+  const emirate = request.nextUrl.searchParams.get("emirate");
+  const cacheKey = `schools:areas:${emirate || "all"}`;
   const cached = await cache.get(cacheKey);
   if (cached) return NextResponse.json(cached);
 
   try {
-    const result = await db.query(
-      `SELECT DISTINCT area, COUNT(*) as count
+    let sql = `SELECT DISTINCT area, COUNT(*) as count
        FROM schools
-       WHERE is_active = true AND area IS NOT NULL AND area != ''
-       GROUP BY area
-       ORDER BY count DESC, area ASC`
-    );
+       WHERE is_active = true AND area IS NOT NULL AND area != ''`;
+    const params: unknown[] = [];
+
+    if (emirate) {
+      sql += ` AND emirate = $1`;
+      params.push(emirate);
+    }
+
+    sql += ` GROUP BY area ORDER BY count DESC, area ASC`;
+
+    const result = await db.query(sql, params);
 
     const areas = result.rows.flatMap((r: { area: string; count: string }) => {
       const name = sanitizeTextValue(r.area);

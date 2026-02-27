@@ -24,6 +24,7 @@ import SchoolCard from '@/components/SchoolCard';
 import SignUpWallModal from '@/components/SignUpWallModal';
 import { useSavedSchools } from '@/hooks/useSavedSchools';
 import { useUserLocation } from '@/hooks/useUserLocation';
+import { displayAreaName } from '@/lib/dubai-areas';
 import type {
   School,
   SearchResponse,
@@ -50,6 +51,12 @@ const FEE_RANGES = [
   { label: 'AED 60,000+', min: '60000', max: '' },
 ];
 
+function getNurseryRatingSortLabel(emirate: string) {
+  if (emirate === 'dubai') return 'KHDA Rating';
+  if (emirate === 'abu_dhabi') return 'ADEK Rating';
+  return 'Rating';
+}
+
 const BASE_SORT_OPTIONS = [
   { value: 'rating', label: 'KHDA Rating' },
   { value: 'fee_asc', label: 'Fees: Low to High' },
@@ -68,6 +75,8 @@ const RADIUS_OPTIONS = [5, 10, 15, 20] as const;
 // ---------------------------------------------------------------------------
 
 interface Filters {
+  emirate: 'dubai' | 'abu_dhabi' | '';
+  area: string;
   rating: KHDARating | '';
   feeMin: string;
   feeMax: string;
@@ -76,6 +85,8 @@ interface Filters {
 }
 
 const DEFAULT_FILTERS: Filters = {
+  emirate: '',
+  area: '',
   rating: '',
   feeMin: '',
   feeMax: '',
@@ -108,6 +119,8 @@ async function fetchNurseries(
 ): Promise<SchoolListResponse> {
   const params = new URLSearchParams();
   params.set('type', 'nursery');
+  if (filters.emirate) params.set('emirate', filters.emirate);
+  if (filters.area) params.set('area', filters.area);
   if (filters.rating) params.set('rating', filters.rating);
   if (filters.feeMin) params.set('fee_min', filters.feeMin);
   if (filters.feeMax) params.set('fee_max', filters.feeMax);
@@ -123,6 +136,16 @@ async function fetchNurseries(
 
   const res = await fetch(`/api/schools?${params.toString()}`);
   if (!res.ok) throw new Error('Failed to fetch nurseries');
+  return res.json();
+}
+
+async function fetchNurseryAreas(emirate?: string): Promise<{ name: string; count: number }[]> {
+  const params = new URLSearchParams();
+  if (emirate) params.set('emirate', emirate);
+  // We want nursery-type areas only, but the areas API returns all types.
+  // The area dropdown is still useful even without type scoping.
+  const res = await fetch(`/api/schools/areas?${params.toString()}`);
+  if (!res.ok) return [];
   return res.json();
 }
 
@@ -166,14 +189,22 @@ function NurseryFilters({
   onReset,
   mobile,
   onClose,
+  areas,
 }: {
   filters: Filters;
   onChange: (f: Filters) => void;
   onReset: () => void;
   mobile?: boolean;
   onClose?: () => void;
+  areas: { name: string; count: number }[];
 }) {
+  const ratingLabel = filters.emirate === 'dubai' ? 'KHDA Rating'
+    : filters.emirate === 'abu_dhabi' ? 'ADEK Rating'
+    : 'Inspection Rating';
+
   const activeCount =
+    (filters.emirate ? 1 : 0) +
+    (filters.area ? 1 : 0) +
     (filters.rating ? 1 : 0) +
     (filters.feeMin || filters.feeMax ? 1 : 0) +
     (filters.hasSen ? 1 : 0);
@@ -207,9 +238,50 @@ function NurseryFilters({
       </div>
 
       <div className="space-y-6">
-        {/* KHDA Rating */}
+        {/* Emirate */}
         <div>
-          <p className="mb-2 text-sm font-medium text-gray-700">KHDA Rating</p>
+          <p className="mb-2 text-sm font-medium text-gray-700">Emirate</p>
+          <div className="flex gap-2">
+            {([['', 'All'], ['dubai', 'Dubai'], ['abu_dhabi', 'Abu Dhabi']] as const).map(([val, label]) => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => onChange({ ...filters, emirate: val as Filters['emirate'], area: val !== filters.emirate ? '' : filters.area })}
+                className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-all ${
+                  filters.emirate === val
+                    ? 'border-[#FF6B35] bg-[#FF6B35]/10 text-[#FF6B35]'
+                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Area */}
+        <div>
+          <p className="mb-2 text-sm font-medium text-gray-700">Area</p>
+          <div className="relative">
+            <select
+              value={filters.area}
+              onChange={(e) => onChange({ ...filters, area: e.target.value })}
+              className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-3 py-2 pr-8 text-sm text-gray-700 focus:border-[#FF6B35] focus:outline-none focus:ring-1 focus:ring-[#FF6B35]"
+            >
+              <option value="">All areas</option>
+              {areas.map((a) => (
+                <option key={a.name} value={a.name}>
+                  {displayAreaName(a.name)} ({a.count})
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+          </div>
+        </div>
+
+        {/* Rating */}
+        <div>
+          <p className="mb-2 text-sm font-medium text-gray-700">{ratingLabel}</p>
           <div className="relative">
             <select
               value={filters.rating}
@@ -321,10 +393,13 @@ function NurseriesPageContent() {
   const isAISearch = queryParam.length > 0;
   const hasLocationContext = userLocation !== null;
 
-  // Build sort options dynamically based on location context
+  // Build sort options dynamically based on location context and emirate
+  const dynamicSortOptions = BASE_SORT_OPTIONS.map(opt =>
+    opt.value === 'rating' ? { ...opt, label: getNurseryRatingSortLabel(filters.emirate) } : opt
+  );
   const sortOptions = hasLocationContext
-    ? [...BASE_SORT_OPTIONS, DISTANCE_SORT_OPTION]
-    : BASE_SORT_OPTIONS;
+    ? [...dynamicSortOptions, DISTANCE_SORT_OPTION]
+    : dynamicSortOptions;
 
   const handleFiltersChange = useCallback((newFilters: Filters) => {
     setFilters(newFilters);
@@ -340,6 +415,13 @@ function NurseriesPageContent() {
       handleSortChange('distance');
     }
   }, [userLocation, handleSortChange]);
+
+  // Fetch areas scoped by emirate
+  const areasQuery = useQuery<{ name: string; count: number }[]>({
+    queryKey: ['nursery-areas', filters.emirate],
+    queryFn: () => fetchNurseryAreas(filters.emirate || undefined),
+    staleTime: 1000 * 60 * 30,
+  });
 
   const aiQuery = useQuery<SearchResponse>({
     queryKey: ['nursery-ai-search', queryParam],
@@ -402,7 +484,7 @@ function NurseriesPageContent() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleNewSearch()}
-              placeholder="Search nurseries in Dubai..."
+              placeholder="Search nurseries..."
               className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
             />
             <Button
@@ -466,6 +548,7 @@ function NurseriesPageContent() {
           filters={filters}
           onChange={setFilters}
           onReset={resetFilters}
+          areas={areasQuery.data ?? []}
         />
 
         {/* Mobile filters overlay */}
@@ -476,6 +559,7 @@ function NurseriesPageContent() {
             onReset={resetFilters}
             mobile
             onClose={() => setMobileFiltersOpen(false)}
+            areas={areasQuery.data ?? []}
           />
         )}
 
@@ -487,7 +571,9 @@ function NurseriesPageContent() {
               <h1 className="text-lg font-bold text-gray-900 sm:text-2xl">
                 {isAISearch
                   ? `Nursery results for "${queryParam}"`
-                  : 'All Nurseries in Dubai'}
+                  : filters.emirate === 'dubai' ? 'Nurseries in Dubai'
+                  : filters.emirate === 'abu_dhabi' ? 'Nurseries in Abu Dhabi'
+                  : 'All Nurseries'}
               </h1>
               {!activeQuery.isLoading && (
                 <p className="mt-0.5 text-xs sm:text-sm text-gray-500">
@@ -574,17 +660,47 @@ function NurseriesPageContent() {
           )}
 
           {/* Active filter pills */}
-          {(filters.rating ||
+          {(filters.emirate ||
+            filters.area ||
+            filters.rating ||
             filters.feeMin ||
             filters.feeMax ||
             filters.hasSen) && (
             <div className="mb-4 flex flex-wrap items-center gap-2">
+              {filters.emirate && (
+                <Badge
+                  variant="secondary"
+                  className="gap-1 bg-[#FF6B35]/10 text-[#FF6B35]"
+                >
+                  {filters.emirate === 'dubai' ? 'Dubai' : 'Abu Dhabi'}
+                  <button
+                    type="button"
+                    onClick={() => setFilters({ ...filters, emirate: '', area: '' })}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </Badge>
+              )}
+              {filters.area && (
+                <Badge
+                  variant="secondary"
+                  className="gap-1 bg-[#FF6B35]/10 text-[#FF6B35]"
+                >
+                  {filters.area}
+                  <button
+                    type="button"
+                    onClick={() => setFilters({ ...filters, area: '' })}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </Badge>
+              )}
               {filters.rating && (
                 <Badge
                   variant="secondary"
                   className="gap-1 bg-[#FF6B35]/10 text-[#FF6B35]"
                 >
-                  KHDA: {filters.rating}
+                  {filters.emirate === 'dubai' ? 'KHDA' : filters.emirate === 'abu_dhabi' ? 'ADEK' : 'Rating'}: {filters.rating}
                   <button
                     type="button"
                     onClick={() => setFilters({ ...filters, rating: '' })}

@@ -56,12 +56,13 @@ export async function POST(request: NextRequest) {
       const intentResponse = await getClaude().messages.create({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 500,
-        system: `You extract structured search parameters from parent queries about Dubai schools and nurseries.
+        system: `You extract structured search parameters from parent queries about Dubai and Abu Dhabi schools and nurseries.
 Return ONLY valid JSON with these fields (all optional):
 {
   "type": "school" | "nursery" | null,
   "curriculum": string[] | null,
   "areas": string[] | null,
+  "emirate": "dubai" | "abu_dhabi" | null,
   "khda_rating": string | null,
   "fee_max_aed": number | null,
   "fee_min_aed": number | null,
@@ -75,9 +76,11 @@ Return ONLY valid JSON with these fields (all optional):
 }
 
 Important distinctions:
-- "areas": Use for well-known Dubai area names that directly match KHDA database (e.g. "Mirdif", "Business Bay").
-- "location_query": Use for informal place names, landmarks, roads, or locations that need geocoding (e.g. "Al Qudra", "JBR", "near the mall", "Dubai Mall area"). This is for places that are NOT exact KHDA area names.
+- "emirate": Extract when user mentions Abu Dhabi, Al Ain, Al Dhafra, ADEK, or Abu Dhabi areas → "abu_dhabi". When user mentions Dubai or Dubai-specific areas → "dubai". Leave null if not specified.
+- "areas": Use for well-known area names that directly match the database (e.g. "Mirdif", "Business Bay", "Khalifa City", "Al Ain").
+- "location_query": Use for informal place names, landmarks, roads, or locations that need geocoding (e.g. "Al Qudra", "JBR", "near the mall", "Dubai Mall area"). This is for places that are NOT exact area names.
 - "near_me": Set to true ONLY if the user explicitly says "near me", "nearby", "close to me", "around me", or similar phrases indicating they want results near their current location.
+- "khda_rating": The rating field applies to both KHDA and ADEK inspection ratings (same scale: Outstanding, Very Good, Good, Acceptable, Weak).
 - A query can have both "areas" AND "location_query" if appropriate, but typically it's one or the other.`,
         messages: [{ role: "user", content: query }],
       });
@@ -114,8 +117,20 @@ Important distinctions:
       filterClauses.push(`s.type = $${paramIdx++}`);
       params.push(intent.type);
     }
+    if (intent.emirate) {
+      filterClauses.push(`s.emirate = $${paramIdx++}`);
+      params.push(intent.emirate);
+    }
     if (intent.khda_rating) {
-      filterClauses.push(`s.khda_rating = $${paramIdx++}`);
+      // Rating applies to both KHDA and ADEK (same scale)
+      if (intent.emirate === "abu_dhabi") {
+        filterClauses.push(`s.adek_rating = $${paramIdx++}`);
+      } else if (intent.emirate === "dubai") {
+        filterClauses.push(`s.khda_rating = $${paramIdx++}`);
+      } else {
+        filterClauses.push(`(s.khda_rating = $${paramIdx} OR s.adek_rating = $${paramIdx})`);
+        paramIdx++;
+      }
       params.push(intent.khda_rating);
     }
     if (intent.fee_max_aed) {
@@ -166,6 +181,7 @@ Important distinctions:
       `
       SELECT
         s.id, s.slug, s.name, s.type, s.area, s.curriculum, s.khda_rating,
+        s.adek_rating, s.emirate, s.regulator,
         s.fee_min, s.fee_max, s.google_rating, s.google_review_count,
         s.ai_summary, s.ai_strengths, s.has_sen_support, s.latitude, s.longitude,
         s.google_photos, s.is_featured,
@@ -246,7 +262,8 @@ Important distinctions:
         const row = sanitizeSchoolRecord(rawRow);
         const emb = row.embedding as number[];
         const semantic = queryEmbedding ? cosineSimilarity(queryEmbedding, emb) : 0;
-        const khda = khdaScore[row.khda_rating as string] ?? 0.1;
+        const inspectionRating = (row.khda_rating as string) || (row.adek_rating as string);
+        const khda = khdaScore[inspectionRating] ?? 0.1;
 
         // Preference-based soft boosts (small so they don't override relevance)
         let prefBoost = 0;
@@ -383,7 +400,7 @@ Important distinctions:
         const explanationResponse = await getClaude().messages.create({
           model: "claude-haiku-4-5-20251001",
           max_tokens: 400,
-          system: `You are a helpful Dubai school advisor. Given a parent's search query and top matching schools,
+          system: `You are a helpful UAE school advisor for Dubai and Abu Dhabi. Given a parent's search query and top matching schools,
 write a brief 2-3 sentence explanation of why these schools match their needs.
 Be specific, warm, and honest. Mention school names. Don't be sycophantic.${distanceInfo ? " When location context is provided, mention the proximity to the searched location." : ""}`,
           messages: [
@@ -395,7 +412,7 @@ Top matches:
 ${topResults
   .map(
     (s: Record<string, unknown>) =>
-      `- ${s.name} (${s.area}): KHDA ${s.khda_rating}, ${(s.curriculum as string[])?.join("/")}, ${formatFeeRange(s.fee_min, s.fee_max)}${s.distance_label ? `, ${s.distance_label}` : ""}`
+      `- ${s.name} (${s.area}): ${s.khda_rating ? `KHDA ${s.khda_rating}` : s.adek_rating ? `ADEK ${s.adek_rating}` : "Unrated"}, ${(s.curriculum as string[])?.join("/")}, ${formatFeeRange(s.fee_min, s.fee_max)}${s.distance_label ? `, ${s.distance_label}` : ""}`
   )
   .join("\n")}${distanceInfo}
 

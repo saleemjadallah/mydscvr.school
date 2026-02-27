@@ -47,6 +47,9 @@ interface SchoolCardProps {
     | "area"
     | "curriculum"
     | "khda_rating"
+    | "adek_rating"
+    | "emirate"
+    | "regulator"
     | "fee_min"
     | "fee_max"
     | "google_rating"
@@ -70,8 +73,10 @@ export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCard
   const [wallOpen, setWallOpen] = useState(false);
 
   const heroPhoto = resolveHeroPhoto(undefined, school.google_photos, school.hero_photo_url);
-  const khdaColors = school.khda_rating
-    ? KHDA_COLOR_MAP[school.khda_rating] ?? { bg: "bg-gray-100", text: "text-gray-700" }
+  const rating = school.khda_rating || school.adek_rating;
+  const ratingLabel = school.khda_rating ? "KHDA" : school.adek_rating ? "ADEK" : null;
+  const ratingColors = rating
+    ? KHDA_COLOR_MAP[rating] ?? { bg: "bg-gray-100", text: "text-gray-700" }
     : null;
   const subscriptionBadges = school.subscription_plan
     ? getSchoolBadges(school.subscription_plan)
@@ -144,14 +149,14 @@ export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCard
             <Heart className={`size-5 sm:size-4 ${isSaved ? "fill-[#FF6B35]" : ""}`} />
           </motion.button>
 
-          {/* Mobile-only: KHDA badge overlay on photo */}
-          {school.khda_rating && khdaColors && (
+          {/* Mobile-only: rating badge overlay on photo */}
+          {rating && ratingColors && (
             <div className="absolute bottom-2 left-2 sm:hidden">
               <Badge
                 variant="secondary"
-                className={`${khdaColors.bg} ${khdaColors.text} border-0 text-[11px] px-2 py-0.5 shadow-sm backdrop-blur-sm`}
+                className={`${ratingColors.bg} ${ratingColors.text} border-0 text-[11px] px-2 py-0.5 shadow-sm backdrop-blur-sm`}
               >
-                KHDA: {school.khda_rating}
+                {ratingLabel}: {rating}
               </Badge>
             </div>
           )}
@@ -174,12 +179,12 @@ export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCard
             {subscriptionBadges.map((b) => (
               <SchoolBadge key={b.type} type={b.type} size="sm" />
             ))}
-            {school.khda_rating && khdaColors && (
+            {rating && ratingColors && (
               <Badge
                 variant="secondary"
-                className={`${khdaColors.bg} ${khdaColors.text} border-0 text-[10px] px-2 py-0.5`}
+                className={`${ratingColors.bg} ${ratingColors.text} border-0 text-[10px] px-2 py-0.5`}
               >
-                KHDA: {school.khda_rating}
+                {ratingLabel}: {rating}
               </Badge>
             )}
           </div>

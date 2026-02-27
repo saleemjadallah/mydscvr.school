@@ -120,6 +120,9 @@ CREATE TABLE IF NOT EXISTS school_embeddings (
   created_at  TIMESTAMP DEFAULT NOW()
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_school_embeddings_school_id_unique
+  ON school_embeddings (school_id);
+
 -- ============================================
 -- KHDA REPORTS TABLE
 -- ============================================

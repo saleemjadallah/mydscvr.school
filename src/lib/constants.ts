@@ -85,8 +85,11 @@ export type FacilityKey = (typeof FACILITY_FEATURES)[number]["key"];
 // Radar chart axes
 // ---------------------------------------------------------------------------
 
+// Both KHDA and ADEK use the identical 5-tier rating scale
+export const RATING_COLOR_MAP = KHDA_COLOR_MAP;
+
 export const RADAR_AXES = [
-  "KHDA Rating",
+  "Inspection Rating",
   "Google Rating",
   "Value for Money",
   "Facilities",

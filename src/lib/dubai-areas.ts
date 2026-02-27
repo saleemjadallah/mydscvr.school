@@ -127,6 +127,35 @@ const AREA_ALIASES: Record<string, string[]> = {
 
   // Nad Al Sheba
   "nad al sheba": ["NAD AL SHEBA FIRST", "NAD AL SHEBA SECOND", "NAD AL SHEBA THIRD"],
+
+  // ---- Abu Dhabi areas ----
+  "al ain": ["Al Ain"],
+  "al dhafra": ["Al Dhafra"],
+  "khalifa city": ["Khalifa City"],
+  "mbz": ["Mohammed Bin Zayed City"],
+  "mbz city": ["Mohammed Bin Zayed City"],
+  "mohammed bin zayed city": ["Mohammed Bin Zayed City"],
+  "mussafah": ["Mussafah"],
+  "reem island": ["Al Reem Island"],
+  "al reem island": ["Al Reem Island"],
+  "saadiyat": ["Saadiyat Island"],
+  "saadiyat island": ["Saadiyat Island"],
+  "yas island": ["Yas Island"],
+  "yas": ["Yas Island"],
+  "baniyas": ["Baniyas"],
+  "shamkha": ["Al Shamkha"],
+  "al shamkha": ["Al Shamkha"],
+  "al mushrif": ["Al Mushrif"],
+  "mushrif": ["Al Mushrif"],
+  "al bateen": ["Al Bateen"],
+  "bateen": ["Al Bateen"],
+  "al muroor": ["Al Muroor"],
+  "muroor": ["Al Muroor"],
+  "al maryah island": ["Al Maryah Island"],
+  "al reef": ["Al Reef"],
+  "al raha": ["Al Raha"],
+  "between two bridges": ["Between Two Bridges"],
+  "madinat zayed": ["Madinat Zayed"],
 };
 
 // ---------------------------------------------------------------------------

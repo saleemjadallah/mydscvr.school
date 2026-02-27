@@ -18,12 +18,52 @@ import SignUpWallModal from '@/components/SignUpWallModal';
 // Data
 // ---------------------------------------------------------------------------
 
-const EXAMPLE_QUERIES = [
-  'Outstanding British school near JBR under AED 80k/year',
-  'Nursery in Downtown with strong Arabic language program',
-  'IB school with excellent SEN support, any area',
-  'Best schools near me',
-];
+type CityKey = '' | 'dubai' | 'abu_dhabi';
+
+const CITY_CONFIG: Record<CityKey, {
+  badge: string;
+  headingSuffix: string;
+  regulator: string;
+  searchPlaceholder: string;
+  queries: string[];
+}> = {
+  '': {
+    badge: 'AI-powered school discovery for the UAE',
+    headingSuffix: '',
+    regulator: 'KHDA & ADEK',
+    searchPlaceholder: 'Describe the ideal school for your child...',
+    queries: [
+      'Outstanding British school near JBR under AED 80k/year',
+      'Best IB schools in Abu Dhabi with strong arts program',
+      'IB school with excellent SEN support, any area',
+      'Best schools near me',
+    ],
+  },
+  dubai: {
+    badge: 'AI-powered school discovery for Dubai',
+    headingSuffix: ' in Dubai',
+    regulator: 'KHDA',
+    searchPlaceholder: 'Describe the ideal school in Dubai...',
+    queries: [
+      'Outstanding British school near JBR under AED 80k/year',
+      'Nursery in Downtown with strong Arabic language program',
+      'IB school with excellent SEN support, any area',
+      'Best schools near me',
+    ],
+  },
+  abu_dhabi: {
+    badge: 'AI-powered school discovery for Abu Dhabi',
+    headingSuffix: ' in Abu Dhabi',
+    regulator: 'ADEK',
+    searchPlaceholder: 'Describe the ideal school in Abu Dhabi...',
+    queries: [
+      'Best IB schools in Abu Dhabi with strong arts program',
+      'British school near Khalifa City under AED 60k/year',
+      'Nursery in Al Ain with SEN support',
+      'Outstanding schools on Saadiyat Island',
+    ],
+  },
+};
 
 // Fallback values shown immediately, replaced once API responds
 const DEFAULT_STATS = { schools: 200, nurseries: 500 };
@@ -59,9 +99,9 @@ const TESTIMONIALS = [
     role: "Father, relocated from UK",
   },
   {
-    quote: "As a first-time parent in Dubai, this tool was invaluable. The KHDA ratings and real reviews gave me confidence.",
-    author: "Priya S.",
-    role: "Mother, new to Dubai",
+    quote: "Moving to Abu Dhabi, we had no idea where to start. mydscvr.ai showed us ADEK-rated schools near Khalifa City instantly.",
+    author: "Fatima R.",
+    role: "Mother, relocated to Abu Dhabi",
   },
 ];
 
@@ -74,22 +114,25 @@ export default function HomePage() {
   const { isSignedIn } = useAuth();
   const [wallOpen, setWallOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [city, setCity] = useState<CityKey>('');
   const [liveStats, setLiveStats] = useState(DEFAULT_STATS);
   const [liveCurricula, setLiveCurricula] = useState(DEFAULT_CURRICULA);
 
-  // Fetch real stats from API (non-blocking, replaces defaults)
+  const cfg = CITY_CONFIG[city];
+
+  // Fetch real stats from API — refetch when city changes
   useEffect(() => {
-    fetch('/api/stats')
+    const params = city ? `?emirate=${city}` : '';
+    fetch(`/api/stats${params}`)
       .then((r) => r.json())
       .then((data) => {
-        if (data.schools) setLiveStats({ schools: data.schools, nurseries: data.nurseries });
+        if (data.schools != null) setLiveStats({ schools: data.schools, nurseries: data.nurseries });
         if (data.curricula?.length) {
-          // Show top 4 curricula
           setLiveCurricula(data.curricula.slice(0, 4));
         }
       })
       .catch(() => {}); // Keep defaults on failure
-  }, []);
+  }, [city]);
 
   function handleSearch(searchQuery?: string) {
     const q = (searchQuery ?? query).trim();
@@ -100,11 +143,13 @@ export default function HomePage() {
       return;
     }
 
-    router.push(`/schools?q=${encodeURIComponent(q)}`);
+    const emirateParam = city ? `&emirate=${city}` : '';
+    router.push(`/schools?q=${encodeURIComponent(q)}${emirateParam}`);
   }
 
   function handleCurriculumClick(curriculum: string) {
-    router.push(`/schools?curriculum=${encodeURIComponent(curriculum)}`);
+    const emirateParam = city ? `&emirate=${city}` : '';
+    router.push(`/schools?curriculum=${encodeURIComponent(curriculum)}${emirateParam}`);
   }
 
   return (
@@ -160,7 +205,7 @@ export default function HomePage() {
           <motion.div variants={staggerItem}>
             <span className="inline-flex items-center gap-1.5 rounded-full glass-dark px-4 py-2 text-sm font-medium text-white/90">
               <Sparkles className="size-4 text-[#FBBF24]" />
-              AI-powered school discovery for Dubai
+              {cfg.badge}
             </span>
           </motion.div>
 
@@ -171,15 +216,33 @@ export default function HomePage() {
           >
             Find the perfect school
             <br />
-            <span className="text-gradient-brand">for your child in Dubai</span>
+            <span className="text-gradient-brand">for your child{cfg.headingSuffix}</span>
           </motion.h1>
+
+          {/* City toggle */}
+          <motion.div variants={staggerItem} className="mt-6 flex items-center justify-center gap-1.5">
+            {([['', 'All UAE'], ['dubai', 'Dubai'], ['abu_dhabi', 'Abu Dhabi']] as const).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setCity(key as CityKey)}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
+                  city === key
+                    ? 'bg-[#FF6B35] text-white shadow-lg shadow-[#FF6B35]/25'
+                    : 'glass-dark text-gray-300 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </motion.div>
 
           {/* Subtitle */}
           <motion.p
             variants={staggerItem}
-            className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-300 sm:text-xl"
+            className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-gray-300 sm:text-xl"
           >
-            Search {liveStats.schools}+ schools and {liveStats.nurseries}+ nurseries using AI. Powered by KHDA
+            Search {liveStats.schools}+ schools and {liveStats.nurseries}+ nurseries using AI. Powered by {cfg.regulator}{' '}
             inspection data, parent reviews, and live fee information.
           </motion.p>
 
@@ -192,7 +255,7 @@ export default function HomePage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="Describe the ideal school for your child..."
+                placeholder={cfg.searchPlaceholder}
                 className="min-w-0 flex-1 bg-transparent px-2 py-3 text-base text-white placeholder:text-gray-500 focus:outline-none"
               />
               <button
@@ -210,7 +273,7 @@ export default function HomePage() {
             {/* Example query chips */}
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
               <span className="text-xs text-gray-500">Try:</span>
-              {EXAMPLE_QUERIES.map((eq) => (
+              {cfg.queries.map((eq) => (
                 <button
                   key={eq}
                   type="button"
@@ -256,7 +319,7 @@ export default function HomePage() {
           {[
             { label: 'Private Schools', value: liveStats.schools, suffix: '+', icon: GraduationCap, accent: 'rgba(255,107,53,0.12)', accentBorder: 'rgba(255,107,53,0.2)' },
             { label: 'Nurseries', value: liveStats.nurseries, suffix: '+', icon: MapPin, accent: 'rgba(168,85,247,0.12)', accentBorder: 'rgba(168,85,247,0.2)' },
-            { label: 'KHDA Verified Ratings', value: 100, suffix: '%', icon: CheckCircle, accent: 'rgba(16,185,129,0.12)', accentBorder: 'rgba(16,185,129,0.2)' },
+            { label: 'Verified Ratings', value: 100, suffix: '%', icon: CheckCircle, accent: 'rgba(16,185,129,0.12)', accentBorder: 'rgba(16,185,129,0.2)' },
             { label: 'AI Smart Matching', value: 24, suffix: '/7', icon: Brain, accent: 'rgba(251,191,36,0.12)', accentBorder: 'rgba(251,191,36,0.2)' },
           ].map((stat) => (
             <motion.div
@@ -391,7 +454,7 @@ export default function HomePage() {
           >
             <h2 className="font-display text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
               Trusted by thousands of{' '}
-              <span className="text-gradient-brand">Dubai families</span>
+              <span className="text-gradient-brand">UAE families</span>
             </h2>
             <p className="mt-3 text-base text-gray-400">
               See what parents are saying about their school discovery journey
