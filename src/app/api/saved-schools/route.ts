@@ -1,7 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import db from "@/db";
 import { sanitizeSchoolRecords } from "@/lib/school-data";
+import { trackCAPIAddToWishlist, getCookieValue } from "@/lib/meta-capi";
+import { getClientIP } from "@/lib/rate-limit";
 
 // GET /api/saved-schools — List current user's saved schools
 export async function GET() {
@@ -41,14 +43,14 @@ export async function GET() {
 }
 
 // POST /api/saved-schools — Save a school
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const { schoolId } = await request.json();
+    const { schoolId, meta_event_id, meta_fbp, meta_fbc } = await request.json();
     if (!schoolId) {
       return NextResponse.json(
         { error: "schoolId is required" },
@@ -72,6 +74,24 @@ export async function POST(request: Request) {
        ON CONFLICT (user_id, school_id) DO NOTHING`,
       [internalUserId, schoolId]
     );
+
+    // Meta CAPI AddToWishlist (fire-and-forget, dedup via meta_event_id)
+    const cookieHeader = request.headers.get("cookie");
+    trackCAPIAddToWishlist({
+      event_id: meta_event_id,
+      event_source_url: request.headers.get("referer") || undefined,
+      user: {
+        ip: getClientIP(request),
+        user_agent: request.headers.get("user-agent"),
+        fbp: meta_fbp || getCookieValue(cookieHeader, "_fbp"),
+        fbc: meta_fbc || getCookieValue(cookieHeader, "_fbc"),
+        external_id: internalUserId,
+      },
+      custom_data: {
+        content_ids: [schoolId],
+        content_type: "school",
+      },
+    });
 
     return NextResponse.json({ saved: true });
   } catch (error) {

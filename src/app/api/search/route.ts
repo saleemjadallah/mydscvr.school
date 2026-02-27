@@ -5,8 +5,10 @@ import OpenAI from "openai";
 import db from "@/db";
 import { searchDubaiSchools } from "@/lib/exa";
 import { cosineSimilarity } from "@/lib/vectors";
+import { randomUUID } from "crypto";
 import { rateLimit, getClientIP } from "@/lib/rate-limit";
 import { sanitizeSchoolRecord } from "@/lib/school-data";
+import { trackCAPISearch, getCookieValue } from "@/lib/meta-capi";
 import { haversineDistance, distanceScore, geocodePlace, isInDubai, formatDistanceLabel } from "@/lib/geo";
 import { resolveAreaAliases } from "@/lib/dubai-areas";
 import { getSearchBoost } from "@/lib/featured";
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { query, session_id, filters, user_lat, user_lng, radius_km } = await request.json();
+  const { query, session_id, filters, user_lat, user_lng, radius_km, meta_fbp, meta_fbc } = await request.json();
 
   if (!query || query.trim().length < 3) {
     return NextResponse.json({ error: "Query too short" }, { status: 400 });
@@ -430,12 +432,29 @@ Write your explanation:`,
       )
       .catch(() => {});
 
+    // Meta CAPI Search event (fire-and-forget, server generates event_id for client dedup)
+    const meta_event_id = randomUUID();
+    const cookieHeader = request.headers.get("cookie");
+    trackCAPISearch({
+      event_id: meta_event_id,
+      event_source_url: request.headers.get("referer") || undefined,
+      search_string: query,
+      user: {
+        ip: ip,
+        user_agent: request.headers.get("user-agent"),
+        fbp: meta_fbp || getCookieValue(cookieHeader, "_fbp"),
+        fbc: meta_fbc || getCookieValue(cookieHeader, "_fbc"),
+        external_id: internalUserId,
+      },
+    });
+
     return NextResponse.json({
       query,
       intent,
       schools: topSchools,
       ai_explanation: aiExplanation,
       total: topSchools.length,
+      meta_event_id,
       ...(webResults && webResults.length > 0 ? { webResults } : {}),
       ...(locationContext ? { location_context: locationContext } : {}),
     });

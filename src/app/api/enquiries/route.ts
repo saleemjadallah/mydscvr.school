@@ -3,6 +3,8 @@ import { auth } from "@clerk/nextjs/server";
 import db from "@/db";
 import { sendEnquiryEmail } from "@/lib/email";
 import { processEnquiryBilling } from "@/lib/billing";
+import { trackCAPILead, getCookieValue } from "@/lib/meta-capi";
+import { getClientIP } from "@/lib/rate-limit";
 
 // POST /api/enquiries — Submit enquiry (core revenue action)
 export async function POST(request: NextRequest) {
@@ -26,6 +28,9 @@ export async function POST(request: NextRequest) {
     utm_medium,
     utm_campaign,
     enquiry_type,
+    meta_event_id,
+    meta_fbp,
+    meta_fbc,
   } = body;
 
   // Validate required fields
@@ -118,6 +123,30 @@ export async function POST(request: NextRequest) {
     );
 
     await client.query("COMMIT");
+
+    // Meta CAPI Lead event (fire-and-forget, deduplicates with client pixel via event_id)
+    const cookieHeader = request.headers.get("cookie");
+    const nameParts = parent_name?.split(" ") ?? [];
+    trackCAPILead({
+      event_id: meta_event_id,
+      event_source_url: request.headers.get("referer") || undefined,
+      user: {
+        email: parent_email,
+        phone: parent_phone,
+        first_name: nameParts[0],
+        last_name: nameParts.length > 1 ? nameParts.slice(1).join(" ") : undefined,
+        ip: getClientIP(request),
+        user_agent: request.headers.get("user-agent"),
+        fbp: meta_fbp || getCookieValue(cookieHeader, "_fbp"),
+        fbc: meta_fbc || getCookieValue(cookieHeader, "_fbc"),
+        external_id: internalUserId,
+      },
+      custom_data: {
+        content_name: school.rows[0].name,
+        content_ids: [school_id],
+        content_type: school.rows[0].type || "school",
+      },
+    });
 
     // Emails sent OUTSIDE the transaction (fire-and-forget)
     sendEnquiryEmail({

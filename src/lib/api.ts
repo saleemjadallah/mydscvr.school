@@ -46,15 +46,18 @@ export async function searchSchools(
   query: string,
   filters?: Record<string, unknown>,
   location?: { lat: number; lng: number },
-  radius_km?: number
+  radius_km?: number,
+  meta?: { fbp?: string; fbc?: string }
 ) {
-  return fetcher("/api/search", {
+  return fetcher<{ meta_event_id?: string; [key: string]: unknown }>("/api/search", {
     method: "POST",
     body: JSON.stringify({
       query,
       filters,
       ...(location ? { user_lat: location.lat, user_lng: location.lng } : {}),
       ...(radius_km ? { radius_km } : {}),
+      ...(meta?.fbp ? { meta_fbp: meta.fbp } : {}),
+      ...(meta?.fbc ? { meta_fbc: meta.fbc } : {}),
     }),
   });
 }

@@ -19,6 +19,7 @@ import {
   ArrowRightLeft,
   Heart,
 } from "lucide-react";
+import { generateEventId, trackLead, getFbp, getFbc } from "@/lib/meta-pixel";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -352,6 +353,16 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
     }
 
     try {
+      // Meta Pixel: fire client-side Lead event + generate dedup ID
+      const metaEventId = generateEventId();
+      const metaFbp = getFbp();
+      const metaFbc = getFbc();
+      trackLead({
+        content_name: school.name,
+        content_ids: [school.id],
+        eventId: metaEventId,
+      });
+
       const res = await fetch("/api/enquiries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -369,6 +380,9 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
           child_grade: data.child_grade || null,
           preferred_start: data.preferred_start || null,
           message: data.message || null,
+          meta_event_id: metaEventId,
+          meta_fbp: metaFbp,
+          meta_fbc: metaFbc,
         }),
       });
 

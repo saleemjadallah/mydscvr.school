@@ -2,6 +2,7 @@
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { trackPageView } from "@/lib/meta-pixel";
 
 function getSessionId(): string {
   const key = "mydscvr_session_id";
@@ -57,6 +58,9 @@ export default function PageViewTracker() {
             keepalive: true,
           }).catch(() => {});
         }
+
+        // Fire Meta Pixel PageView for SPA navigations
+        trackPageView();
       } catch {
         // Tracking should never fail visibly
       }
