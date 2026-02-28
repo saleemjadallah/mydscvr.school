@@ -13,7 +13,6 @@ import {
   GitCompareArrows,
   MessageCircle,
   Search,
-  Send,
   Check,
   ArrowRight,
   Sparkles,
@@ -31,13 +30,13 @@ const WALL_CONFIG: Record<
 > = {
   save: {
     icon: Heart,
-    title: "Save your favourite schools",
+    title: "Save more schools",
     description:
-      "Create a free account to save schools to your shortlist and access them anytime.",
+      "You've saved 3 schools as a guest. Create a free account to save unlimited schools and never lose your shortlist.",
     benefits: [
-      "Build your school shortlist",
-      "Get personalised recommendations",
-      "Track your enquiry responses",
+      "Save unlimited schools",
+      "Access your shortlist from any device",
+      "Track enquiry responses",
     ],
   },
   compare: {
@@ -49,17 +48,6 @@ const WALL_CONFIG: Record<
       "Detailed side-by-side analysis",
       "AI-generated insights & verdict",
       "Share comparisons with family",
-    ],
-  },
-  enquiry: {
-    icon: Send,
-    title: "Send enquiries to schools",
-    description:
-      "Create a free account to contact schools and track all your enquiries in one place.",
-    benefits: [
-      "Track enquiry responses",
-      "Get follow-up reminders",
-      "Manage all communications",
     ],
   },
   chat: {

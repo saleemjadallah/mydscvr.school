@@ -457,7 +457,7 @@ function SchoolsPageContent() {
   const [page, setPage] = useState(1);
   const [loadedSchools, setLoadedSchools] = useState<School[]>([]);
 
-  const { isSaved, toggleSave } = useSavedSchools();
+  const { isSaved, toggleSave, isAtLocalLimit } = useSavedSchools();
   const { location: userLocation, loading: locationLoading, error: locationError, requestLocation, clearLocation } = useUserLocation();
 
   const isAISearch = queryParam.length > 0;
@@ -986,6 +986,7 @@ function SchoolsPageContent() {
                           school={school}
                           isSaved={isSaved(school.id)}
                           onToggleSave={toggleSave}
+                          isAtLocalLimit={isAtLocalLimit}
                         />
                       </motion.div>
                     ))}

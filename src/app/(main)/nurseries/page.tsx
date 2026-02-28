@@ -387,7 +387,7 @@ function NurseriesPageContent() {
   const [searchInput, setSearchInput] = useState(queryParam);
   const [page] = useState(1);
 
-  const { isSaved, toggleSave } = useSavedSchools();
+  const { isSaved, toggleSave, isAtLocalLimit } = useSavedSchools();
   const { location: userLocation, loading: locationLoading, error: locationError, requestLocation, clearLocation } = useUserLocation();
 
   const isAISearch = queryParam.length > 0;
@@ -804,6 +804,7 @@ function NurseriesPageContent() {
                       school={school}
                       isSaved={isSaved(school.id)}
                       onToggleSave={toggleSave}
+                      isAtLocalLimit={isAtLocalLimit}
                     />
                   ))}
                 </div>

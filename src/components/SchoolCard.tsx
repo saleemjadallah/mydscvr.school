@@ -5,13 +5,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { Star, MapPin, BookOpen, Heart, Navigation } from "lucide-react";
 import { motion } from "framer-motion";
-import { useAuth } from "@clerk/nextjs";
 import { Badge } from "@/components/ui/badge";
 import { resolveHeroPhoto } from "@/lib/school-utils";
 import SignUpWallModal from "@/components/SignUpWallModal";
 import SchoolBadge from "@/components/school-admin/SchoolBadge";
 import { getSchoolBadges } from "@/lib/badges";
 import type { School } from "@/types";
+import type { SchoolCardData } from "@/hooks/useSavedSchools";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -65,11 +65,11 @@ interface SchoolCardProps {
     subscription_plan?: string | null;
   };
   isSaved?: boolean;
-  onToggleSave?: (schoolId: string) => void;
+  onToggleSave?: (schoolId: string, schoolData?: SchoolCardData) => void;
+  isAtLocalLimit?: boolean;
 }
 
-export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCardProps) {
-  const { isSignedIn } = useAuth();
+export default function SchoolCard({ school, isSaved, onToggleSave, isAtLocalLimit }: SchoolCardProps) {
   const [wallOpen, setWallOpen] = useState(false);
 
   const heroPhoto = resolveHeroPhoto(undefined, school.google_photos, school.hero_photo_url);
@@ -134,11 +134,12 @@ export default function SchoolCard({ school, isSaved, onToggleSave }: SchoolCard
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              if (!isSignedIn) {
+              // If not saved and at local limit → show sign-up wall
+              if (!isSaved && isAtLocalLimit) {
                 setWallOpen(true);
                 return;
               }
-              onToggleSave?.(school.id);
+              onToggleSave?.(school.id, school as SchoolCardData);
             }}
             className={`absolute right-2 top-2 sm:right-1.5 sm:top-1.5 z-10 rounded-full p-2 sm:p-1.5 transition-colors ${
               isSaved

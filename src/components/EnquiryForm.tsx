@@ -3,12 +3,11 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, SignUpButton } from "@clerk/nextjs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import SignUpWallModal from "@/components/SignUpWallModal";
 import {
   CheckCircle2,
   ChevronDown,
@@ -18,6 +17,11 @@ import {
   DollarSign,
   ArrowRightLeft,
   Heart,
+  Check,
+  ArrowRight,
+  Bookmark,
+  Bell,
+  BarChart3,
 } from "lucide-react";
 import { generateEventId, trackLead, getFbp, getFbc } from "@/lib/meta-pixel";
 
@@ -293,7 +297,6 @@ const MESSAGE_TEMPLATES: MessageTemplate[] = [
 
 export default function EnquiryForm({ school }: EnquiryFormProps) {
   const { isSignedIn } = useAuth();
-  const [wallOpen, setWallOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState<string | null>(null);
@@ -347,11 +350,6 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
   );
 
   const onSubmit = async (data: EnquiryFormValues) => {
-    if (!isSignedIn) {
-      setWallOpen(true);
-      return;
-    }
-
     try {
       // Meta Pixel: fire client-side Lead event + generate dedup ID
       const metaEventId = generateEventId();
@@ -405,24 +403,62 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
   // ---- Success state ----
   if (submitted) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-xl bg-emerald-50 p-8 text-center">
-        <CheckCircle2 className="size-10 text-emerald-600" />
-        <h3 className="text-lg font-semibold text-emerald-800">
-          Enquiry Sent!
-        </h3>
-        <p className="text-sm text-emerald-700">
-          Your enquiry has been sent to{" "}
-          <span className="font-medium">{school.name}</span>. They will get back
-          to you shortly.
-        </p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-2"
-          onClick={() => setSubmitted(false)}
-        >
-          Send another enquiry
-        </Button>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col items-center gap-3 rounded-xl bg-emerald-50 p-8 text-center">
+          <CheckCircle2 className="size-10 text-emerald-600" />
+          <h3 className="text-lg font-semibold text-emerald-800">
+            Enquiry Sent!
+          </h3>
+          <p className="text-sm text-emerald-700">
+            Your enquiry has been sent to{" "}
+            <span className="font-medium">{school.name}</span>. They will get back
+            to you shortly.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-2"
+            onClick={() => setSubmitted(false)}
+          >
+            Send another enquiry
+          </Button>
+        </div>
+
+        {/* Post-enquiry sign-up prompt for anonymous users */}
+        {!isSignedIn && (
+          <div className="rounded-xl border border-[#FF6B35]/20 bg-gradient-to-br from-orange-50 to-amber-50 p-5">
+            <h4 className="text-sm font-semibold text-gray-900">
+              Want to track this enquiry?
+            </h4>
+            <ul className="mt-3 space-y-2">
+              {[
+                { icon: Bell, text: "Get notified when the school responds" },
+                { icon: BarChart3, text: "Track all your enquiries in one place" },
+                { icon: Bookmark, text: "Save unlimited schools to your shortlist" },
+              ].map(({ icon: Icon, text }) => (
+                <li key={text} className="flex items-center gap-2 text-xs text-gray-600">
+                  <div className="flex size-4 flex-shrink-0 items-center justify-center rounded-full bg-[#FF6B35]/10">
+                    <Icon className="size-2.5 text-[#FF6B35]" />
+                  </div>
+                  {text}
+                </li>
+              ))}
+            </ul>
+            <SignUpButton mode="redirect">
+              <button
+                type="button"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90"
+                style={{
+                  background: "linear-gradient(135deg, #FF6B35 0%, #FF8F5E 100%)",
+                  boxShadow: "0 2px 8px rgba(255, 107, 53, 0.25)",
+                }}
+              >
+                Create Free Account
+                <ArrowRight className="size-3.5" />
+              </button>
+            </SignUpButton>
+          </div>
+        )}
       </div>
     );
   }
@@ -644,7 +680,6 @@ export default function EnquiryForm({ school }: EnquiryFormProps) {
         Your details will be shared with {school.name} to process your enquiry.
       </p>
 
-      <SignUpWallModal open={wallOpen} onClose={() => setWallOpen(false)} feature="enquiry" />
     </form>
   );
 }

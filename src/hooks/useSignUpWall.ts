@@ -6,7 +6,6 @@ import { useAuth } from "@clerk/nextjs";
 export type SignUpWallFeature =
   | "save"
   | "compare"
-  | "enquiry"
   | "chat"
   | "ai-search";
 

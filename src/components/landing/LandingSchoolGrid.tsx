@@ -19,7 +19,7 @@ export default function LandingSchoolGrid({
   viewAllHref,
   viewAllLabel,
 }: LandingSchoolGridProps) {
-  const { savedIds, toggleSave } = useSavedSchools();
+  const { savedIds, toggleSave, isAtLocalLimit } = useSavedSchools();
 
   return (
     <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -45,6 +45,7 @@ export default function LandingSchoolGrid({
             school={school}
             isSaved={savedIds.has(school.id)}
             onToggleSave={toggleSave}
+            isAtLocalLimit={isAtLocalLimit}
           />
         ))}
       </div>
