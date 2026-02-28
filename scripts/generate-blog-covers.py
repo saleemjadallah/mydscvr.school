@@ -45,6 +45,33 @@ COVERS = [
             f"teenagers engaged in learning. Modern, inspiring educational environment. {BRAND_CONTEXT}"
         ),
     },
+    {
+        "name": "school-fees-uae-complete-guide",
+        "prompt": (
+            f"A wide landscape photograph of a modern, premium school campus in Dubai with "
+            f"impressive architecture — glass facades, manicured gardens, and a swimming pool visible "
+            f"in the background. In the foreground, a diverse family (mother in elegant abaya, father "
+            f"in business attire, and two school-age children in crisp uniforms) walking through the "
+            f"school's grand entrance. The scene is bathed in warm golden morning light. A subtle visual "
+            f"sense of investment and quality — the campus looks world-class. Palm trees frame the scene, "
+            f"blue Dubai sky above. The mood is aspirational yet approachable — a family evaluating the "
+            f"value of education. Shallow depth of field on the family with the campus in soft focus. {BRAND_CONTEXT}"
+        ),
+    },
+    {
+        "name": "curriculum-changes-12-year-school-path-uae",
+        "prompt": (
+            f"A wide landscape photograph showing the journey of education — a long, modern school "
+            f"corridor with natural light streaming through floor-to-ceiling windows on one side. Along "
+            f"the corridor, we see students at different stages: a small child (5-6 years old) in a "
+            f"bright kindergarten area with colorful learning materials near the foreground, middle school "
+            f"students (11-12 years old) working on a science project in the midground, and older "
+            f"teenagers (17-18 years old) in graduation-style academic settings in the background — "
+            f"creating a visual progression of the educational journey. The corridor has a modern Dubai "
+            f"school aesthetic — clean lines, warm wood accents, greenery. Bright, optimistic lighting "
+            f"suggesting growth and progression. Diverse students at each stage. {BRAND_CONTEXT}"
+        ),
+    },
 ]
 
 

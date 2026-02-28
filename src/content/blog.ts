@@ -51,12 +51,42 @@ const AUTHOR_MYDSCVR: BlogAuthor = {
 
 import { content as schoolGuideContent } from "./posts/how-to-choose-the-right-school-in-dubai";
 import { content as britishVsIbContent } from "./posts/british-vs-ib-curriculum-dubai";
+import { content as schoolFeesUaeContent } from "./posts/school-fees-uae-complete-guide";
+import { content as curriculumChangesContent } from "./posts/curriculum-changes-12-year-school-path-uae";
 
 // ---------------------------------------------------------------------------
 // Blog posts — newest first
 // ---------------------------------------------------------------------------
 
 const posts: BlogPost[] = [
+  {
+    slug: "school-fees-uae-complete-guide",
+    title: "School Fees in the UAE: The Complete Parent's Guide for 2025-2026",
+    excerpt: "From AED 6,000 to AED 120,000+ per year -- what drives the enormous range in UAE school fees, how KHDA regulates increases, hidden costs to budget for, and practical strategies for every price bracket.",
+    content: schoolFeesUaeContent,
+    coverImage: "/blog/school-fees-uae-complete-guide.jpg",
+    category: "School Guide",
+    tags: ["school fees UAE", "UAE school fees guide", "KHDA fee framework", "Dubai school fees", "Abu Dhabi school fees", "school fees by curriculum", "hidden school costs UAE", "education budget UAE", "KHDA Education Cost Index"],
+    author: AUTHOR_MYDSCVR,
+    publishedAt: "2026-02-28T08:00:00Z",
+    readingTime: 15,
+    metaTitle: "School Fees in the UAE 2025-2026 | Complete Guide by Curriculum",
+    metaDescription: "UAE school fees range from AED 6,000 to AED 120,000+. Compare fees by curriculum, understand KHDA regulations, uncover hidden costs, and budget smartly for your child's education.",
+  },
+  {
+    slug: "curriculum-changes-12-year-school-path-uae",
+    title: "Curriculum Changes During the 12-Year School Path in the UAE: A Parent's Planning Guide",
+    excerpt: "How curricula evolve from FS1 to Year 13, when and why families switch mid-journey, the five critical transition points, and how curriculum changes affect university admissions.",
+    content: curriculumChangesContent,
+    coverImage: "/blog/curriculum-changes-12-year-school-path-uae.jpg",
+    category: "Curriculum Guide",
+    tags: ["curriculum changes UAE schools", "switching curriculum UAE", "12 year school path UAE", "IGCSE to IB", "Indian to British curriculum", "curriculum transition UAE", "university admissions curriculum switch", "A-Levels vs IB", "school planning UAE"],
+    author: AUTHOR_MYDSCVR,
+    publishedAt: "2026-02-28T06:00:00Z",
+    readingTime: 14,
+    metaTitle: "Curriculum Changes in UAE Schools | 12-Year Path Planning Guide",
+    metaDescription: "Navigate curriculum transitions across your child's 12-year school journey in the UAE. Covers IGCSE, IB, A-Levels, CBSE switching points, risks, and university impact.",
+  },
   {
     slug: "how-to-choose-the-right-school-in-dubai",
     title: "How to Choose the Right School in Dubai: The Complete Parent's Guide for 2025-2026",
