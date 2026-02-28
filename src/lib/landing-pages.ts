@@ -14,10 +14,25 @@ export interface LandingPageData {
 /**
  * Fetch filtered school data for a landing page config.
  * Direct DB queries — no API round-trip. Used by server components at build/ISR time.
+ *
+ * Returns empty data gracefully when the DB is unreachable (e.g. at Railway build time
+ * where the internal hostname isn't resolvable). ISR will populate real data on first request.
  */
 export async function fetchLandingPageData(
   config: LandingPageConfig
 ): Promise<LandingPageData> {
+  try {
+    return await _fetchFromDB(config);
+  } catch (err) {
+    console.warn(
+      `[landing-pages] DB unavailable for "${config.slug}", returning empty data:`,
+      (err as Error).message
+    );
+    return { schools: [], totalCount: 0, avgFee: null, topRatedCount: 0, totalReviews: 0 };
+  }
+}
+
+async function _fetchFromDB(config: LandingPageConfig): Promise<LandingPageData> {
   const { filters } = config;
 
   // Build WHERE clauses
