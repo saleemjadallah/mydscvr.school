@@ -264,7 +264,13 @@ export async function GET(request: NextRequest) {
     if (!hasLocation) {
       await cache.set(cacheKey, response, 300);
     }
-    return NextResponse.json(response);
+    return NextResponse.json(response, {
+      headers: {
+        "Cache-Control": hasLocation
+          ? "private, no-cache"
+          : "public, s-maxage=300, stale-while-revalidate=3600",
+      },
+    });
   } catch (error) {
     console.error("Schools list error:", error);
     return NextResponse.json(

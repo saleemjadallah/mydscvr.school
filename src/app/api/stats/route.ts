@@ -63,7 +63,11 @@ export async function GET(request: NextRequest) {
     };
 
     await cache.set(cacheKey, stats, 3600);
-    return NextResponse.json(stats);
+    return NextResponse.json(stats, {
+      headers: {
+        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+      },
+    });
   } catch (error) {
     console.error("Stats error:", error);
     return NextResponse.json(

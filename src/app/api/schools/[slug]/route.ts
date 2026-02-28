@@ -45,7 +45,11 @@ export async function GET(
 
     const school = sanitizeSchoolRecord(result.rows[0]);
     await cache.set(cacheKey, school, 600);
-    return NextResponse.json(school);
+    return NextResponse.json(school, {
+      headers: {
+        "Cache-Control": "public, s-maxage=600, stale-while-revalidate=3600",
+      },
+    });
   } catch (error) {
     console.error("School fetch error:", error);
     return NextResponse.json(

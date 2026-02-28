@@ -32,7 +32,11 @@ export async function GET(request: NextRequest) {
     });
 
     await cache.set(cacheKey, areas, 3600);
-    return NextResponse.json(areas);
+    return NextResponse.json(areas, {
+      headers: {
+        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+      },
+    });
   } catch (error) {
     console.error("Areas list error:", error);
     return NextResponse.json(
