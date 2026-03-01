@@ -12,11 +12,12 @@ export default function HomepageNews() {
     queryKey: ["homepage-news"],
     queryFn: getHomepageNews,
     staleTime: 10 * 60 * 1000, // 10 min
+    retry: 2,
   });
 
   const articles = data?.articles;
 
-  // Hide entirely if no articles and not loading
+  // Hide only if explicitly got an empty response (API now returns fallback articles)
   if (!isLoading && (!articles || articles.length === 0)) return null;
 
   // Split articles for editorial layout

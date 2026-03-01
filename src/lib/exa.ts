@@ -96,7 +96,7 @@ export async function searchDubaiEducationNews(
     type: "auto",
     category: "news",
     numResults,
-    startPublishedDate: daysAgoISO(30),
+    startPublishedDate: daysAgoISO(90),
     highlights: true,
   });
 }
